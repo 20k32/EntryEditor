@@ -5,8 +5,10 @@
     xmlns:local="using:EntryEditor.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d" d:DesignWidth="1076" Height="752">
+    mc:Ignorable="d" d:DesignWidth="1076" Height="752"
+    x:Name="mainPage">
 
+    <!-- Menu -->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition/>
@@ -14,42 +16,75 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0">
+
+            <!-- Fields -->
             <StackPanel Orientation="Horizontal"
                     VerticalAlignment="Center">
                 <TextBlock Text="Enter first name:"
                        VerticalAlignment="Center"/>
-                <TextBox Text="tempFirstName"/>
+                <TextBox Text="{Binding FirstName, Mode=TwoWay}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal"
                     VerticalAlignment="Center"
                     Margin="0, 5">
                 <TextBlock Text="Enter last name:"
                        VerticalAlignment="Center"/>
-                <TextBox Text="tempLastName"/>
+                <TextBox Text="{Binding LastName, Mode=TwoWay}"/>
             </StackPanel>
-            <Button Content="Add"/>
-            <Button Content="Edit"/>
-            <Button Content="Save"/>
+
+            <!-- Buttons -->
+            <StackPanel Orientation="Horizontal">
+                <Button Content="Add"
+                        Command="{Binding AddCommand}"/>
+                <Button Content="Edit"
+                        Command="{Binding EditCommand}"/>
+            </StackPanel>
         </StackPanel>
 
-        <ListBox Grid.Row="1">
-            <ListBoxItem HorizontalContentAlignment="Stretch">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" 
-                            Background="AntiqueWhite"
-                            Grid.Column="0">
-                        <TextBlock Text="Bobby bob"
-                               HorizontalAlignment="Left"/>
-                    </StackPanel>
-                    <Button Content="Delete"
-                            Grid.Column="1"
-                            HorizontalAlignment="Right"/>
-                </Grid>
-            </ListBoxItem>
-        </ListBox>
+
+        <!-- Entry table -->
+        <StackPanel Orientation="Vertical"
+                        Grid.Row="1">
+
+            <Button Content="Save"
+                    HorizontalAlignment="Right"/>
+            
+            <ListBox ItemsSource="{Binding Entries, Mode=OneTime}"
+                     SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     VerticalAlignment="Stretch"
+                     MaxHeight="300">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" 
+                                Value="Stretch"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal"
+                                        Grid.Column="0">
+                                <TextBlock Text="{Binding FirstName}"
+                                           HorizontalAlignment="Left"
+                                           Margin="0, 0, 5, 0"/>
+                                <TextBlock Text="{Binding LastName}"
+                                           HorizontalAlignment="Left"/>
+                            </StackPanel>
+                            <Button Content="Delete"
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Right"
+                                    Margin="0, 0, 10, 0"
+                                    Command="{Binding ElementName=mainPage, Path=DataContext.DeleteEntryCommand}"
+                                    CommandParameter="{Binding Id}"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
     </Grid>
 </Page>
