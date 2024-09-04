@@ -18,7 +18,7 @@ namespace EntryEditor.Models.Commands
         
         public bool CanExecute(object parameter)
         {
-            return _canExecute == null || _canExecute.Invoke(parameter = null);
+            return _canExecute == null || _canExecute.Invoke(parameter);
         }
 
         public void Execute(object parameter)

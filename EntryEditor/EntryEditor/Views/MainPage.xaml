@@ -3,10 +3,15 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:EntryEditor.Views"
+    xmlns:converter="using:EntryEditor.Models"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d" d:DesignWidth="1076" Height="752"
     x:Name="mainPage">
+
+    <Page.Resources>
+        <converter:VisibilityConverter x:Key="MYVisbilityConverter"/>
+    </Page.Resources>
 
     <!-- Menu -->
     <Grid>
@@ -22,22 +27,31 @@
                     VerticalAlignment="Center">
                 <TextBlock Text="Enter first name:"
                        VerticalAlignment="Center"/>
-                <TextBox Text="{Binding FirstName, Mode=TwoWay}"/>
+                <TextBox Text="{Binding FirstName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal"
                     VerticalAlignment="Center"
                     Margin="0, 5">
                 <TextBlock Text="Enter last name:"
                        VerticalAlignment="Center"/>
-                <TextBox Text="{Binding LastName, Mode=TwoWay}"/>
+                <TextBox Text="{Binding LastName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
             </StackPanel>
 
             <!-- Buttons -->
             <StackPanel Orientation="Horizontal">
                 <Button Content="Add"
-                        Command="{Binding AddCommand}"/>
+                        Command="{Binding AddCommand}"
+                        Margin="0, 0, 5, 0"/>
                 <Button Content="Edit"
-                        Command="{Binding EditCommand}"/>
+                        Command="{Binding EditCommand}"
+                        Visibility="{Binding EditButtonVisibility}"/>
+                <Button Content="Submit"
+                        Command="{Binding SaveChangesCommand}"
+                        Visibility="{Binding ChangeEntryButtonsVisibility}"
+                        Margin="0, 0, 5, 0"/>
+                <Button Content="Cancel"
+                        Command="{Binding CancelChangesCommand}"
+                        Visibility="{Binding ChangeEntryButtonsVisibility}"/>
             </StackPanel>
         </StackPanel>
 
@@ -48,7 +62,7 @@
 
             <Button Content="Save"
                     HorizontalAlignment="Right"/>
-            
+
             <ListBox ItemsSource="{Binding Entries, Mode=OneTime}"
                      SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -69,10 +83,10 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Orientation="Horizontal"
                                         Grid.Column="0">
-                                <TextBlock Text="{Binding FirstName}"
+                                <TextBlock Text="{Binding FirstName, Mode=OneWay}"
                                            HorizontalAlignment="Left"
                                            Margin="0, 0, 5, 0"/>
-                                <TextBlock Text="{Binding LastName}"
+                                <TextBlock Text="{Binding LastName, Mode=OneWay}"
                                            HorizontalAlignment="Left"/>
                             </StackPanel>
                             <Button Content="Delete"
@@ -80,7 +94,7 @@
                                     HorizontalAlignment="Right"
                                     Margin="0, 0, 10, 0"
                                     Command="{Binding ElementName=mainPage, Path=DataContext.DeleteEntryCommand}"
-                                    CommandParameter="{Binding Id}"/>
+                                    CommandParameter="{Binding Id, Mode=OneTime}"/>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

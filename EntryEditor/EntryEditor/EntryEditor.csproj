@@ -126,6 +126,7 @@
     <Compile Include="Models\IEntry.cs" />
     <Compile Include="Models\NotifyOnCompleteAddingCollection.cs" />
     <Compile Include="Models\ReactiveModels\EntryReactive.cs" />
+    <Compile Include="Models\VisibilityConverter.cs" />
     <Compile Include="ViewModels\MainWindowViewModel.cs" />
     <Compile Include="ViewModels\ViewModelBase.cs" />
     <Compile Include="Views\MainPage.xaml.cs">

@@ -1,96 +1,155 @@
 using EntryEditor.Models;
 using System;
-using Windows.UI.Popups;
-using System.Collections.ObjectModel;
 using System.Windows.Input;
 using EntryEditor.Models.Commands;
-using Windows.UI.Xaml.Input;
 using System.Linq;
-using Windows.UI.Xaml.Controls.Primitives;
+using Windows.UI.Xaml;
+using System.Runtime.CompilerServices;
+using Windows.UI.Popups;
 
 namespace EntryEditor.ViewModels
 {
     internal sealed class MainWindowViewModel : ViewModelBase
     {
         private bool _editRequested;
-        public NotifyOnCompleteAddingCollection<EntryReactive> Entries { get; set; }
-        
-        public MainWindowViewModel() 
+        private bool EditRequested
         {
-            _editRequested = false;
+            get => _editRequested;
+            set
+            {
+                _editRequested = value;
+                NotifyOfPropertyChange(nameof(ChangeEntryButtonsVisibility));
+                NotifyOfPropertyChange(nameof(EditButtonVisibility));
+                AddCommand?.NotifyCanExecuteChanged();
+            }
+        }
+
+        public NotifyOnCompleteAddingCollection<EntryReactive> Entries { get; set; }
+
+        public MainWindowViewModel()
+        {
+            EditRequested = false;
             Entries = new NotifyOnCompleteAddingCollection<EntryReactive>();
             AddCommand = new RelayCommand(Add, CanAdd);
-            EditCommand = new RelayCommand(Edit);
+            EditCommand = new RelayCommand(Edit, CanEdit);
             DeleteEntryCommand = new RelayCommand(DeleteEntry);
+            SaveChangesCommand = new RelayCommand(SaveChanges, CanSaveChanges);
+            CancelChangesCommand = new RelayCommand(CancelChanges);
         }
 
         #region Add Command
-        private bool _canAdd;
         public IRelayCommand AddCommand { get; set; }
 
-        internal void Add(object _)
+        private void Add(object _)
         {
-            if(SelectedEntry is null)
+            if (EditRequested)
             {
-                var newEntry = new EntryReactive()
-                {
-                    FirstName = this.FirstName,
-                    LastName = this.LastName,
-                };
-
-                Entries.Add(newEntry);
+                // todo: notify user that he is in editing mode;
+                return;
             }
-            else if(SelectedEntry is not null && _editRequested)
+
+            var newEntry = new EntryReactive()
             {
-                SelectedEntry.FirstName = this.FirstName;
-                SelectedEntry.LastName = this.LastName;
-                _editRequested = false;
+                FirstName = this.FirstName,
+                LastName = this.LastName,
+            };
+
+            Entries.Add(newEntry);
+            SelectedEntry = null;
+
+            if(Entries.Count == 1)
+            {
+                EditCommand.NotifyCanExecuteChanged();
+                SaveChangesCommand.NotifyCanExecuteChanged();
             }
         }
 
-        internal bool CanAdd(object _)
-        {
-            return true;
-        }
+        private bool CanAdd(object _) => !string.IsNullOrWhiteSpace(FirstName) 
+            && !string.IsNullOrWhiteSpace(LastName);
 
         #endregion
 
         #region Edit Command
 
+        public Visibility EditButtonVisibility => EditRequested ? Visibility.Collapsed : Visibility.Visible;
 
-        public ICommand EditCommand { get; set; }
+        public IRelayCommand EditCommand { get; set; }
 
-        internal void Edit(object _)
+        private void Edit(object _)
         {
-            if(SelectedEntry is null)
+            if (SelectedEntry is null)
             {
                 return;
             }
 
             FirstName = SelectedEntry.FirstName;
             LastName = SelectedEntry.LastName;
-            _editRequested = true;
+            EditRequested = true;
         }
+
+        private bool CanEdit(object _) => SelectedEntry is not null && Entries.Count > 0;
 
         #endregion
 
         #region Delete entry command
 
+        public bool DeleteButtonVisibility => false;
+
         public IRelayCommand DeleteEntryCommand { get; set; }
 
-        public void DeleteEntry(object entryId)
+        private async void DeleteEntry(object entryId)
         {
-            if(entryId is null)
+            if (entryId is Guid entryGuidId)
             {
-                return;
-            }
+                var message = new MessageDialog("Do you wish to delete this entry?");
+                message.Commands.Add(new UICommand("Yes", null));
+                message.Commands.Add(new UICommand("No", null));
 
-            if(entryId is Guid entryGuidId)
-            {
-                var entryToDelete = Entries.First(entry => entry.Id == entryGuidId);
+                var uiCommand = await message.ShowAsync();
+
+                if(uiCommand.Label == "No")
+                {
+                    return;
+                }
+
+                var entryToDelete = Entries.First(entry => entry.Equals(entryId));
                 Entries.Remove(entryToDelete);
+
+                if(Entries.Count == 0)
+                {
+                    EditCommand.NotifyCanExecuteChanged();
+                    SaveChangesCommand.NotifyCanExecuteChanged();
+                }
             }
-            
+        }
+
+        #endregion
+
+        #region SaveChanges Command
+
+        public Visibility ChangeEntryButtonsVisibility => EditRequested ? Visibility.Visible : Visibility.Collapsed;
+        public IRelayCommand SaveChangesCommand { get; set; }
+
+        private void SaveChanges(object _)
+        {
+            if (SelectedEntry is not null && EditRequested)
+            {
+                SelectedEntry.FirstName = this.FirstName;
+                SelectedEntry.LastName = this.LastName;
+            }
+        }
+
+        private bool CanSaveChanges(object _) => SelectedEntry is not null && Entries.Count > 0;
+
+        #endregion
+
+        #region CancelChanges Command
+
+        public IRelayCommand CancelChangesCommand { get; set; }
+
+        private void CancelChanges(object _)
+        {
+            EditRequested = false;
         }
 
         #endregion
@@ -106,6 +165,7 @@ namespace EntryEditor.ViewModels
             {
                 _firstName = value;
                 NotifyOfPropertyChange();
+                AddCommand.NotifyCanExecuteChanged();
             }
         }
 
@@ -122,6 +182,7 @@ namespace EntryEditor.ViewModels
             {
                 _lastName = value;
                 NotifyOfPropertyChange();
+                AddCommand.NotifyCanExecuteChanged();
             }
         }
 
@@ -138,6 +199,9 @@ namespace EntryEditor.ViewModels
             {
                 _selectedEntry = value;
                 NotifyOfPropertyChange();
+                DeleteEntryCommand.NotifyCanExecuteChanged();
+                SaveChangesCommand.NotifyCanExecuteChanged();
+                EditCommand.NotifyCanExecuteChanged();
             }
         }
 

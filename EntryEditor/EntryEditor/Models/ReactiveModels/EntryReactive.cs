@@ -47,11 +47,18 @@ namespace EntryEditor.Models
         {
             if(obj is EntryReactive entry)
             {
-                return Id.Equals(entry.Id);
+                return EntryEquals(entry);
+            }
+            if(obj is Guid id)
+            {
+                return GuidEquals(id);
             }
 
             return false;
         }
+
+        public bool EntryEquals(EntryReactive entry) => Id.Equals(entry.Id);
+        public bool GuidEquals(Guid id) => Id.Equals(id);
 
         public override int GetHashCode() => Id.GetHashCode();
     }
