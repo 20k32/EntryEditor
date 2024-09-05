@@ -98,7 +98,7 @@ namespace EntryEditor.Models
             }
         }
 
-        public static void Deserialize(Stream stream, Action<EntryReactive> callback)
+        public static void Deserialize(Stream stream, Action<IEnumerable<EntryReactive>> callback)
         {
             if(callback is null)
             {
@@ -107,14 +107,16 @@ namespace EntryEditor.Models
 
             using (_serializationHelper.SetSerializationStream(stream))
             {
-                var entries = _serializationHelper.Deserialize();
+                var entries = _serializationHelper
+                    .Deserialize()
+                    .Select(entry =>
+                    {
+                        var entryReactive = new EntryReactive();
+                        entryReactive.RestoreState(in entry);
+                        return entryReactive;
+                    });
 
-                foreach(var item in entries)
-                {
-                    var entryReactive = new EntryReactive();
-                    entryReactive.RestoreState(in item);
-                    callback(entryReactive);
-                }
+                callback(entries);
             }
         }
     }

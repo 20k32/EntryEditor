@@ -8,23 +8,19 @@ using Windows.Data.Xml.Dom;
 
 namespace EntryEditor.Models.Serialization
 {
-    internal class SerializationHelper<TEntry> : IDisposable
+    internal sealed class SerializationHelper<TEntry> : IDisposable
     {
         private ISerializer<IEnumerable<TEntry>> _serializer;
         private Stream _serializationStream;
 
         public SerializationHelper(ISerializer<IEnumerable<TEntry>> serializer)
-        {
-            _serializer = serializer;
-        }
+            => _serializer = serializer;
 
         public SerializationHelper()
         { }
 
-        public void SetSerializer(ISerializer<IEnumerable<TEntry>> serializer)
-        {
-            _serializer = serializer;
-        }
+        public void SetSerializer(ISerializer<IEnumerable<TEntry>> serializer) 
+            => _serializer = serializer;
 
         public Stream SetSerializationStream(Stream stream) => _serializationStream = stream;
 
@@ -32,16 +28,8 @@ namespace EntryEditor.Models.Serialization
 
         public Stream SerializationStream => _serializationStream;
 
-        public void Serialize(IEnumerable<TEntry> entities)
-        {
-            if(entities is null)
-            {
-                throw new ArgumentNullException(nameof(entities));
-            }
-
-            _serializer.SerializeToStream(_serializationStream, entities);
-        }
-            
+        public void Serialize(IEnumerable<TEntry> entities) 
+            => _serializer.SerializeToStream(_serializationStream, entities);
 
         public IEnumerable<TEntry> Deserialize() => _serializer.DeserializeFromStream(_serializationStream);
 

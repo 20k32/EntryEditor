@@ -9,9 +9,9 @@ using EntryEditor.Models.Serialization.DTOs;
 
 namespace EntryEditor.Models.Serialization
 {
-    internal class XmlSerializer : ISerializer<IEnumerable<EntryDTO>>
+    internal sealed class XmlSerializer : ISerializer<IEnumerable<EntryDTO>>
     {
-        private DataContractSerializer _serializer;
+        private readonly DataContractSerializer _serializer;
 
         public XmlSerializer()
         {
@@ -33,6 +33,10 @@ namespace EntryEditor.Models.Serialization
             if(stream is null)
             {
                 throw new ArgumentNullException(nameof(stream));
+            }
+            if (entity is null)
+            {
+                throw new ArgumentNullException(nameof(entity));
             }
 
             _serializer.WriteObject(stream, entity);

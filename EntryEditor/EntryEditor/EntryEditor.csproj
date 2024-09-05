@@ -122,6 +122,8 @@
     </Compile>
     <Compile Include="Models\Commands\IRelayCommand.cs" />
     <Compile Include="Models\Commands\RelayCommand.cs" />
+    <Compile Include="Models\MessageDialogExtensions.cs" />
+    <Compile Include="Models\Serialization\DefaultPaths.cs" />
     <Compile Include="Models\Serialization\DTOs\EntryDTO.cs" />
     <Compile Include="Models\IMappable.cs" />
     <Compile Include="Models\NotifyOnCompleteAddingCollection.cs" />

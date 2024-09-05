@@ -10,34 +10,40 @@
     x:Name="mainPage">
 
     <!-- Menu -->
-    <Grid>
+    <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition/>
-            <RowDefinition/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0">
 
             <!-- Fields -->
             <StackPanel Orientation="Horizontal"
-                    VerticalAlignment="Center">
+                         VerticalAlignment="Center">
                 <TextBlock Text="Enter first name:"
-                       VerticalAlignment="Center"/>
-                <TextBox Text="{Binding FirstName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                           VerticalAlignment="Center"
+                           Margin="0, 0, 5, 0"/>
+                <TextBox Text="{Binding FirstName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         MinWidth="100"
+                         MaxWidth="150"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal"
-                    VerticalAlignment="Center"
-                    Margin="0, 5">
+                        VerticalAlignment="Center"
+                        Margin="0, 5">
                 <TextBlock Text="Enter last name:"
-                       VerticalAlignment="Center"/>
-                <TextBox Text="{Binding LastName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                           VerticalAlignment="Center"
+                           Margin="0, 0, 5, 0"/>
+                <TextBox Text="{Binding LastName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         MinWidth="100"
+                         MaxWidth="150"/>
             </StackPanel>
 
             <!-- Buttons -->
             <StackPanel Orientation="Horizontal">
                 <Button Content="Add"
                         Command="{Binding AddCommand}"
-                        Margin="5, 0, 5, 0"/>
+                        Margin="0, 0, 5, 0"/>
                 <Button Content="Edit"
                         Command="{Binding EditCommand}"
                         Visibility="{Binding EditButtonVisibility}"/>
@@ -53,22 +59,28 @@
 
 
         <!-- Entry table -->
-        <StackPanel Orientation="Vertical"
-                        Grid.Row="1">
-
-            <Button Content="Save"
-                    HorizontalAlignment="Right"
-                    Command="{Binding SaveChangesCommand}"/>
-
-            <Button Content="Load"
-                    HorizontalAlignment="Right"
-                    Command="{Binding LoadChangesCommand}"/>
+        <Grid Grid.Row="1"
+              VerticalAlignment="Stretch">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0, 0, 0, 5"
+                        Grid.Row="0">
+                <Button Content="Save"
+                    Command="{Binding SaveStateCommand}" Margin="0, 0, 5, 0"/>
+                <Button Content="Load"
+                    Command="{Binding LoadStateCommand}"/>
+            </StackPanel>
+           
 
             <ListBox ItemsSource="{Binding Entries, Mode=OneTime}"
                      SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     VerticalAlignment="Stretch"
-                     MaxHeight="300">
+                     Grid.Row="1">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="HorizontalContentAlignment" 
@@ -100,6 +112,6 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-        </StackPanel>
+        </Grid>
     </Grid>
 </Page>
