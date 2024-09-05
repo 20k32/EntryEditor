@@ -6,6 +6,10 @@ using System.Linq;
 using Windows.UI.Xaml;
 using System.Runtime.CompilerServices;
 using Windows.UI.Popups;
+using System.IO;
+using Windows.Storage.Streams;
+using Windows.Storage;
+using Windows.UI.Xaml.Controls;
 
 namespace EntryEditor.ViewModels
 {
@@ -28,6 +32,7 @@ namespace EntryEditor.ViewModels
 
         public MainWindowViewModel()
         {
+            
             EditRequested = false;
             Entries = new NotifyOnCompleteAddingCollection<EntryReactive>();
             AddCommand = new RelayCommand(Add, CanAdd);
@@ -64,7 +69,8 @@ namespace EntryEditor.ViewModels
             }
         }
 
-        private bool CanAdd(object _) => !string.IsNullOrWhiteSpace(FirstName) 
+        private bool CanAdd(object _) => !EditRequested 
+            && !string.IsNullOrWhiteSpace(FirstName) 
             && !string.IsNullOrWhiteSpace(LastName);
 
         #endregion
@@ -125,21 +131,64 @@ namespace EntryEditor.ViewModels
 
         #endregion
 
-        #region SaveChanges Command
+        #region Save Changes Command
 
         public Visibility ChangeEntryButtonsVisibility => EditRequested ? Visibility.Visible : Visibility.Collapsed;
         public IRelayCommand SaveChangesCommand { get; set; }
 
-        private void SaveChanges(object _)
+        private async void SaveChanges(object _)
         {
-            if (SelectedEntry is not null && EditRequested)
+            try
             {
-                SelectedEntry.FirstName = this.FirstName;
-                SelectedEntry.LastName = this.LastName;
+                var documentsFolder = await KnownFolders.GetFolderForUserAsync(null, KnownFolderId.DocumentsLibrary);
+                var appFolder = await documentsFolder.TryGetItemAsync("EntryEditor/") as StorageFolder;
+                if (appFolder is null)
+                {
+                    await documentsFolder.CreateFolderAsync("EntryEditor/");
+                }
+      
+                var file = await appFolder.TryGetItemAsync("test.xml") as StorageFile;
+
+                if(file is null)
+                {
+                    file = await appFolder.CreateFileAsync("test.xml");
+                }
+                else
+                {
+                    await FileIO.WriteTextAsync(file, string.Empty);
+                }
+                
+
+                EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Entries, Entries.Count);
             }
+            catch(UnauthorizedAccessException ex)
+            {
+                var s = ex.Message;
+            }
+            catch (FileNotFoundException ex)
+            {
+                var s = ex.Message;
+            }
+            
         }
 
-        private bool CanSaveChanges(object _) => SelectedEntry is not null && Entries.Count > 0;
+        private bool CanSaveChanges(object _) => Entries.Count > 0;
+
+        #endregion
+
+        #region Load Changes Command
+
+        public IRelayCommand LoadChangesCommand { get; set; }
+
+        private void LoadChanges()
+        {
+            if(Entries.Count > 0)
+            {
+                Entries.Clear();
+            }
+
+            EntryReactive.Deserialize(File.OpenRead("test.xml"), Entries.Add);
+        }
 
         #endregion
 
@@ -202,6 +251,12 @@ namespace EntryEditor.ViewModels
                 DeleteEntryCommand.NotifyCanExecuteChanged();
                 SaveChangesCommand.NotifyCanExecuteChanged();
                 EditCommand.NotifyCanExecuteChanged();
+
+                if (EditRequested)
+                {
+                    FirstName = SelectedEntry.FirstName;
+                    LastName = SelectedEntry.LastName;
+                }
             }
         }
 

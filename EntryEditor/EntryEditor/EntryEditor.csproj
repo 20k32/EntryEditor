@@ -122,11 +122,13 @@
     </Compile>
     <Compile Include="Models\Commands\IRelayCommand.cs" />
     <Compile Include="Models\Commands\RelayCommand.cs" />
-    <Compile Include="Models\Entry.cs" />
-    <Compile Include="Models\IEntry.cs" />
+    <Compile Include="Models\Serialization\DTOs\EntryDTO.cs" />
+    <Compile Include="Models\IMappable.cs" />
     <Compile Include="Models\NotifyOnCompleteAddingCollection.cs" />
     <Compile Include="Models\ReactiveModels\EntryReactive.cs" />
-    <Compile Include="Models\VisibilityConverter.cs" />
+    <Compile Include="Models\Serialization\ISerializer.cs" />
+    <Compile Include="Models\Serialization\SerializationHelper.cs" />
+    <Compile Include="Models\Serialization\XmlSerializer.cs" />
     <Compile Include="ViewModels\MainWindowViewModel.cs" />
     <Compile Include="ViewModels\ViewModelBase.cs" />
     <Compile Include="Views\MainPage.xaml.cs">

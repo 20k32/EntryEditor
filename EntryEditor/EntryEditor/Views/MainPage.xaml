@@ -9,10 +9,6 @@
     mc:Ignorable="d" d:DesignWidth="1076" Height="752"
     x:Name="mainPage">
 
-    <Page.Resources>
-        <converter:VisibilityConverter x:Key="MYVisbilityConverter"/>
-    </Page.Resources>
-
     <!-- Menu -->
     <Grid>
         <Grid.RowDefinitions>
@@ -41,7 +37,7 @@
             <StackPanel Orientation="Horizontal">
                 <Button Content="Add"
                         Command="{Binding AddCommand}"
-                        Margin="0, 0, 5, 0"/>
+                        Margin="5, 0, 5, 0"/>
                 <Button Content="Edit"
                         Command="{Binding EditCommand}"
                         Visibility="{Binding EditButtonVisibility}"/>
@@ -61,7 +57,12 @@
                         Grid.Row="1">
 
             <Button Content="Save"
-                    HorizontalAlignment="Right"/>
+                    HorizontalAlignment="Right"
+                    Command="{Binding SaveChangesCommand}"/>
+
+            <Button Content="Load"
+                    HorizontalAlignment="Right"
+                    Command="{Binding LoadChangesCommand}"/>
 
             <ListBox ItemsSource="{Binding Entries, Mode=OneTime}"
                      SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"

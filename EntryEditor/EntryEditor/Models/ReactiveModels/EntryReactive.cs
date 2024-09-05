@@ -1,37 +1,45 @@
+using EntryEditor.Models.Serialization;
+using EntryEditor.Models.Serialization.DTOs;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using Windows.ApplicationModel.Email.DataProvider;
+
 
 namespace EntryEditor.Models
 {
-    internal sealed class EntryReactive : INotifyPropertyChanged, IEntry
+    internal sealed class EntryReactive : INotifyPropertyChanged, IMappable<EntryDTO>
     {
-        private Entry _entry;
+        private static readonly SerializationHelper<EntryDTO> _serializationHelper = new(new XmlSerializer());
 
         public EntryReactive()
         {
-            _entry = new Entry();
             Id = Guid.NewGuid();
         }
 
         public Guid Id { get; private set; }
 
+        private string _fristName;
         public string FirstName
         {
-            get => _entry.FirstName;
+            get => _fristName;
             set
             {
-                _entry.FirstName = value;
+                _fristName = value;
                 OnPropertyChanged();
             }
         }
 
+        private string _lastName;
         public string LastName 
         { 
-            get => _entry.LastName; 
+            get => _lastName; 
             set
             {
-                _entry.LastName = value;
+                _lastName = value;
                 OnPropertyChanged();
             }
         }
@@ -61,5 +69,53 @@ namespace EntryEditor.Models
         public bool GuidEquals(Guid id) => Id.Equals(id);
 
         public override int GetHashCode() => Id.GetHashCode();
+
+        public void Map(out EntryDTO value) => value = new(FirstName, LastName);
+
+        private void RestoreState(in EntryDTO state)
+        {
+            FirstName = state.FirstName;
+            LastName = state.LastName;
+        }
+
+        public static void Serialize(Stream stream, IEnumerable<EntryReactive> entries, int count = 0)
+        {
+            if(entries is null)
+            {
+                throw new ArgumentNullException(nameof(entries));
+            }
+
+            List<EntryDTO> entriesToSerialize = new(count);
+            foreach (EntryReactive item in entries)
+            {
+                item.Map(out var entry);
+                entriesToSerialize.Add(entry);
+            }
+
+            using (_serializationHelper.SetSerializationStream(stream))
+            {
+                _serializationHelper.Serialize(entriesToSerialize);
+            }
+        }
+
+        public static void Deserialize(Stream stream, Action<EntryReactive> callback)
+        {
+            if(callback is null)
+            {
+                throw new ArgumentNullException(nameof(callback));
+            }
+
+            using (_serializationHelper.SetSerializationStream(stream))
+            {
+                var entries = _serializationHelper.Deserialize();
+
+                foreach(var item in entries)
+                {
+                    var entryReactive = new EntryReactive();
+                    entryReactive.RestoreState(in item);
+                    callback(entryReactive);
+                }
+            }
+        }
     }
 }
