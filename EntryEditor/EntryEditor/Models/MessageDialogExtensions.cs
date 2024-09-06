@@ -16,7 +16,7 @@ namespace EntryEditor.Models
 
         private static readonly MessageDialog _dialogWindow = new(string.Empty);
 
-        public static IAsyncOperation<IUICommand> ShowMessage(string message, params string[] buttonNames)
+        public static IAsyncOperation<IUICommand> ShowMessageAsync(string message, params string[] buttonNames)
         {
             if(buttonNames is null)
             {

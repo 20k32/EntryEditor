@@ -9,25 +9,18 @@ using EntryEditor.Models.Serialization;
 using Windows.ApplicationModel;
 using System.Threading.Tasks;
 using System.Runtime.Serialization;
+using Windows.Storage.Pickers;
+using System.Collections.Generic;
+using EntryEditor.Models.Serialization.DTOs;
 
 namespace EntryEditor.ViewModels
 {
     internal sealed class MainWindowViewModel : ViewModelBase
     {
-        private bool _firstLoad;
+        private readonly ISerializer<IEnumerable<EntryDTO>> xmlSerializer;
+        private readonly ISerializer<IEnumerable<EntryDTO>> jsonSerializer;
 
-        private bool _editRequested;
-        private bool EditRequested
-        {
-            get => _editRequested;
-            set
-            {
-                _editRequested = value;
-                NotifyOfPropertyChange(nameof(ChangeEntryButtonsVisibility));
-                NotifyOfPropertyChange(nameof(EditButtonVisibility));
-                AddCommand?.NotifyCanExecuteChanged();
-            }
-        }
+        private bool _firstLoad;
 
         public NotifyOnCompleteAddingCollection<EntryReactive> Entries { get; }
 
@@ -35,27 +28,32 @@ namespace EntryEditor.ViewModels
         {
             _firstLoad = true;
             Entries = new();
-            EditRequested = false;
             AddCommand = new RelayCommand(Add, CanAdd);
-            EditCommand = new RelayCommand(Edit, CanEdit);
+            EditCommand = new RelayCommand(Edit);
             DeleteEntryCommand = new RelayCommand(DeleteEntry);
-            SaveChangesCommand = new RelayCommand(SaveChanges, CanSaveChanges);
+            SaveChangesCommand = new RelayCommand(SaveChanges);
             CancelChangesCommand = new RelayCommand(CancelChanges);
             SaveStateCommand = new RelayCommand(SaveState);
             LoadStateCommand = new RelayCommand(LoadState);
+            xmlSerializer = new XmlSerializer();
+            jsonSerializer = new JsonSerializer();
         }
 
-        private async Task SaveStateAsync()
+        private ISerializer<IEnumerable<EntryDTO>> GetSerializerByFileExtension(string extension = null) => extension switch
         {
-            var documentsFolder = await KnownFolders.GetFolderForUserAsync(null, KnownFolderId.DocumentsLibrary);
-            var appFolder = await documentsFolder.TryGetItemAsync(DefaultPaths.FOLDER) as StorageFolder;
+            ".xml" => xmlSerializer,
+            ".json" => jsonSerializer,
+            _ => jsonSerializer
+        };
 
+        private async Task SaveStateAsync(StorageFolder appFolder)
+        {
             if (appFolder is null)
             {
-                appFolder = await documentsFolder.CreateFolderAsync(DefaultPaths.FOLDER);
+                appFolder = await ApplicationData.Current.LocalCacheFolder.CreateFolderAsync(DefaultPaths.FOLDER);
             }
 
-            var file = await appFolder.TryGetItemAsync(DefaultPaths.FILE_NAME) as StorageFile;
+            var file = (StorageFile)await appFolder.TryGetItemAsync(DefaultPaths.FILE_NAME);
 
             if (file is null)
             {
@@ -69,84 +67,30 @@ namespace EntryEditor.ViewModels
             EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Entries, Entries.Count);
         }
 
-        private async Task LoadStateAsync()
-        {
-            StorageFile file = null;
-            try
-            {
-                var documentsFolder = await KnownFolders.GetFolderForUserAsync(null, KnownFolderId.DocumentsLibrary);
-                var appFolder = await documentsFolder.GetFolderAsync(DefaultPaths.FOLDER);
-                file = await appFolder.GetFileAsync(DefaultPaths.FILE_NAME);
-
-                if (Entries.Count > 0)
-                {
-                    Entries.Clear();
-                }
-
-                EntryReactive.Deserialize(await file.OpenStreamForReadAsync(), Entries.AddRange);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                await MessageDialogExtensions.ShowMessage(ex.Message, MessageDialogExtensions.OkDialogButtonName);
-            }
-            catch (FileNotFoundException ex)
-            {
-                await MessageDialogExtensions.ShowMessage(ex.Message, MessageDialogExtensions.OkDialogButtonName);
-            }
-            catch (SerializationException)
-            {
-                await MessageDialogExtensions.ShowMessage("Saving file is corrupted. Click 'Ok' to delete it.",
-                    MessageDialogExtensions.OkDialogButtonName);
-                await file.DeleteAsync();
-            }
-        }
-
         #region Add Command
         public IRelayCommand AddCommand { get; }
 
         private void Add(object _)
         {
-            var newEntry = new EntryReactive()
-            {
-                FirstName = this.FirstName,
-                LastName = this.LastName,
-            };
-
+            var newEntry = new EntryReactive();
+            newEntry.InitCredentials(FirstName, LastName);
             Entries.Add(newEntry);
-            SelectedEntry = null;
-
-            if (Entries.Count == 1)
-            {
-                EditCommand.NotifyCanExecuteChanged();
-                SaveChangesCommand.NotifyCanExecuteChanged();
-            }
         }
 
-        private bool CanAdd(object _) => !EditRequested
-            && !string.IsNullOrWhiteSpace(FirstName)
-            && !string.IsNullOrWhiteSpace(LastName);
+        private bool CanAdd(object _) => !string.IsNullOrWhiteSpace(FirstName)
+                                         && !string.IsNullOrWhiteSpace(LastName);
 
         #endregion
 
         #region Edit Command
 
-        public Visibility EditButtonVisibility => EditRequested ? Visibility.Collapsed : Visibility.Visible;
-
         public IRelayCommand EditCommand { get; }
 
-        private void Edit(object _)
+        private void Edit(object id)
         {
-            if (SelectedEntry is null)
-            {
-                return;
-            }
-
-            FirstName = SelectedEntry.FirstName;
-            LastName = SelectedEntry.LastName;
-            EditRequested = true;
+            var entryToEdit = Entries.First(entry => entry.Equals(id));
+            entryToEdit.AllowEditing = true;
         }
-
-        private bool CanEdit(object _) => SelectedEntry is not null && Entries.Count > 0;
 
         #endregion
 
@@ -154,43 +98,57 @@ namespace EntryEditor.ViewModels
 
         public IRelayCommand DeleteEntryCommand { get; }
 
-        private async void DeleteEntry(object entryId)
+        private async void DeleteEntry(object entry)
         {
-            if (entryId is Guid entryGuidId)
-            {
-                var uiCommand = await MessageDialogExtensions.ShowMessage("Do you wish to delete entry?", 
+            var uiCommand = await MessageDialogExtensions.ShowMessageAsync("Do you wish to delete entry?",
                     MessageDialogExtensions.YesDialogButtonName, MessageDialogExtensions.NoDialogButtonName);
 
-                if (uiCommand.Label == MessageDialogExtensions.NoDialogButtonName)
-                {
-                    return;
-                }
-
-                var entryToDelete = Entries.First(entry => entry.Equals(entryId));
-                Entries.Remove(entryToDelete);
-
-                if (Entries.Count == 0)
-                {
-                    EditCommand.NotifyCanExecuteChanged();
-                    SaveChangesCommand.NotifyCanExecuteChanged();
-                }
+            if (uiCommand.Label == MessageDialogExtensions.YesDialogButtonName)
+            {
+                Entries.Remove((EntryReactive)entry);
             }
         }
 
         #endregion
 
         #region Save Changes Command
-
-        public Visibility ChangeEntryButtonsVisibility => EditRequested ? Visibility.Visible : Visibility.Collapsed;
         public IRelayCommand SaveChangesCommand { get; }
 
-        private void SaveChanges(object _)
+        private async void SaveChanges(object entry)
         {
-            SelectedEntry.FirstName = FirstName;
-            SelectedEntry.LastName = LastName;
+            string dialogResultLabel = MessageDialogExtensions.YesDialogButtonName;
+
+            if (!CanSaveChanges(entry))
+            {
+               var dialogResult = await MessageDialogExtensions.ShowMessageAsync("Do you really want to leave fields empty?", 
+                    MessageDialogExtensions.YesDialogButtonName, 
+                    MessageDialogExtensions.NoDialogButtonName);
+
+                dialogResultLabel = dialogResult.Label;
+            }
+
+            if(dialogResultLabel == MessageDialogExtensions.YesDialogButtonName)
+            {
+                var currentEntry = ((EntryReactive)entry);
+                currentEntry.CommitChanges();
+                currentEntry.AllowEditing = false;
+            }
         }
 
-        private bool CanSaveChanges(object _) => SelectedEntry is not null && Entries.Count > 0;
+        private bool CanSaveChanges(object entry)
+        {
+            bool result = false;
+
+            if(entry is not null)
+            {
+                var currentEntry = (EntryReactive)entry;
+
+                result = !string.IsNullOrEmpty(currentEntry.FirstName)
+                        && !string.IsNullOrEmpty(currentEntry.LastName);
+            }
+
+            return result;
+        }
 
         #endregion
 
@@ -198,9 +156,11 @@ namespace EntryEditor.ViewModels
 
         public IRelayCommand CancelChangesCommand { get; }
 
-        private void CancelChanges(object _)
+        private void CancelChanges(object entry)
         {
-            EditRequested = false;
+            var currentEntry = ((EntryReactive)entry);
+            currentEntry.RollBackChanges();
+            currentEntry.AllowEditing = false;
         }
 
         #endregion
@@ -210,7 +170,20 @@ namespace EntryEditor.ViewModels
         public IRelayCommand SaveStateCommand { get; }
         private async void SaveState(object _)
         {
-            await SaveStateAsync();
+            var file = await FilePickerExtensions.ShowSaveAsync();
+            try
+            {
+                if(file is not null)
+                {
+                    var serializer = GetSerializerByFileExtension(file.FileType);
+                    EntryReactive.SetSerializer(serializer);
+                    EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Entries, Entries.Count);
+                }
+            }
+            catch(SerializationException ex)
+            {
+                await MessageDialogExtensions.ShowMessageAsync(ex.Message, MessageDialogExtensions.OkDialogButtonName);
+            }
         }
 
         #endregion
@@ -221,7 +194,25 @@ namespace EntryEditor.ViewModels
 
         private async void LoadState(object _)
         {
-            await LoadStateAsync();
+            var file = await FilePickerExtensions.ShowOpenAsync();
+            try
+            {
+                if(file is not null)
+                {
+                    if (Entries.Count > 0)
+                    {
+                        Entries.Clear();
+                    }
+
+                    var serializer = GetSerializerByFileExtension(file.FileType);
+                    EntryReactive.SetSerializer(serializer);
+                    EntryReactive.Deserialize(await file.OpenStreamForReadAsync(), Entries.AddRange);
+                }
+            }
+            catch (SerializationException ex)
+            {
+                await MessageDialogExtensions.ShowMessageAsync(ex.Message, MessageDialogExtensions.OkDialogButtonName);
+            }
         }
 
         #endregion
@@ -271,33 +262,24 @@ namespace EntryEditor.ViewModels
             {
                 _selectedEntry = value;
                 NotifyOfPropertyChange();
-                DeleteEntryCommand.NotifyCanExecuteChanged();
-                SaveChangesCommand.NotifyCanExecuteChanged();
-                EditCommand.NotifyCanExecuteChanged();
-
-                if (EditRequested && SelectedEntry is not null)
-                {
-                    FirstName = SelectedEntry.FirstName;
-                    LastName = SelectedEntry.LastName;
-                }
             }
         }
 
         #endregion
 
-        public override async void OnLoading(object sender, LeavingBackgroundEventArgs e)
+        public override async Task OnLoading()
         {
             if (!_firstLoad)
             {
                 return;
             }
+
             try
             {
-                var documentsFolder = await KnownFolders.GetFolderForUserAsync(null, KnownFolderId.DocumentsLibrary);
-                var appFolder = await documentsFolder.TryGetItemAsync(DefaultPaths.FOLDER) as StorageFolder;
+                var appFolder = (StorageFolder) await ApplicationData.Current.LocalCacheFolder.TryGetItemAsync(DefaultPaths.FOLDER);
                 if (appFolder is null)
                 {
-                    appFolder = await documentsFolder.CreateFolderAsync(DefaultPaths.FOLDER);
+                    appFolder = await ApplicationData.Current.LocalCacheFolder.CreateFolderAsync(DefaultPaths.FOLDER);
                 }
 
                 var file = await appFolder.TryGetItemAsync(DefaultPaths.FILE_NAME) as StorageFile;
@@ -307,22 +289,50 @@ namespace EntryEditor.ViewModels
                     file = await appFolder.CreateFileAsync(DefaultPaths.FILE_NAME);
                     EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Enumerable.Empty<EntryReactive>());
                 }
+                else
+                {
+                    var serializer = GetSerializerByFileExtension();
+                    EntryReactive.SetSerializer(serializer);
+                    EntryReactive.Deserialize(await file.OpenStreamForReadAsync(), Entries.AddRange);
+                }
 
-                await LoadStateAsync();
                 _firstLoad = false;
             }
             catch (UnauthorizedAccessException)
             {
-                await MessageDialogExtensions.ShowMessage("Please, give me access to Documents folder",
+                await MessageDialogExtensions.ShowMessageAsync("Please, give me access to Local cache folder",
+                    MessageDialogExtensions.OkDialogButtonName);
+            }
+            catch (SerializationException)
+            {
+                await MessageDialogExtensions.ShowMessageAsync("Saving file is corrupted, it will be rewritten when you exit program.",
                     MessageDialogExtensions.OkDialogButtonName);
             }
         }
 
-        public override async void OnClosing(object sender, SuspendingEventArgs e)
+        public override async Task OnClosing()
         {
-            var deferral = e.SuspendingOperation.GetDeferral();
-            await SaveStateAsync();
-            deferral.Complete();
+            var appFolder = await ApplicationExtensions.GetLocalCacheFolderAsync();
+
+            if (appFolder is null)
+            {
+                appFolder = await ApplicationData.Current.LocalCacheFolder.CreateFolderAsync(DefaultPaths.FOLDER);
+            }
+
+            var file = (StorageFile)await appFolder.TryGetItemAsync(DefaultPaths.FILE_NAME);
+
+            if (file is null)
+            {
+                file = await appFolder.CreateFileAsync(DefaultPaths.FILE_NAME);
+            }
+            else
+            {
+                await FileIO.WriteTextAsync(file, string.Empty);
+            }
+
+            var serializer = GetSerializerByFileExtension();
+            EntryReactive.SetSerializer(serializer);
+            EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Entries, Entries.Count);
         }
     }
 }

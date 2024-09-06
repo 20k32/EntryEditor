@@ -1,11 +1,9 @@
-﻿using EntryEditor.ViewModels;
+﻿using EntryEditor.Models.Commands;
+using EntryEditor.ViewModels;
+using Microsoft.Toolkit.Uwp.UI.Controls;
 using System;
-using System.Diagnostics;
-using System.Threading.Tasks;
-using Windows.ApplicationModel;
-using Windows.UI.Core;
-using Windows.UI.Core.Preview;
-using Windows.UI.Popups;
+using System.Collections.Generic;
+using System.Windows;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
@@ -23,10 +21,6 @@ namespace EntryEditor.Views
         public MainPage()
         {
             InitializeComponent();
-            var viewModel = new MainWindowViewModel();
-            DataContext = viewModel;
-            Application.Current.LeavingBackground += viewModel.OnLoading;
-            Application.Current.Suspending += viewModel.OnClosing;
         }
     }
 }

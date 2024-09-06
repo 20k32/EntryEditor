@@ -18,7 +18,7 @@ namespace EntryEditor.ViewModels
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public abstract void OnLoading(object sender, LeavingBackgroundEventArgs e);
-        public abstract void OnClosing(object sender, SuspendingEventArgs e);
+        public abstract Task OnLoading();
+        public abstract Task OnClosing();
     }
 }

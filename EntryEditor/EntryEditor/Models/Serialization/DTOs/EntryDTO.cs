@@ -6,10 +6,10 @@ namespace EntryEditor.Models.Serialization.DTOs
     [DataContract]
     internal readonly struct EntryDTO
     {
-        [DataMember]
+        [DataMember(Name = "fn")]
         public readonly string FirstName;
 
-        [DataMember]
+        [DataMember(Name = "ln")]
         public readonly string LastName;
 
         public EntryDTO(string firstName, string lastName)
