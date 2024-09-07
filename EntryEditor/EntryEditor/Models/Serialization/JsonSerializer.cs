@@ -12,11 +12,11 @@ namespace EntryEditor.Models.Serialization
 {
     internal class JsonSerializer : ISerializer<IEnumerable<EntryDTO>>
     {
-        private readonly DataContractJsonSerializer _serializer;
+        private readonly DataContractJsonSerializer serializer;
 
         public JsonSerializer()
         {
-            _serializer = new(typeof(IEnumerable<EntryDTO>));
+            serializer = new(typeof(IEnumerable<EntryDTO>));
         }
 
         public IEnumerable<EntryDTO> DeserializeFromStream(Stream stream)
@@ -26,7 +26,7 @@ namespace EntryEditor.Models.Serialization
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            return _serializer.ReadObject(stream) as IEnumerable<EntryDTO>;
+            return (IEnumerable<EntryDTO>)serializer.ReadObject(stream);
         }
 
         public void SerializeToStream(Stream stream, IEnumerable<EntryDTO> entity)
@@ -40,7 +40,7 @@ namespace EntryEditor.Models.Serialization
                 throw new ArgumentNullException(nameof(entity));
             }
 
-            _serializer.WriteObject(stream, entity);
+            serializer.WriteObject(stream, entity);
         }
     }
 }

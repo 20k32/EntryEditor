@@ -6,6 +6,7 @@ using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
 using EntryEditor.Views;
 using EntryEditor.ViewModels;
+using Windows.UI.ViewManagement;
 
 namespace EntryEditor
 {
@@ -52,7 +53,7 @@ namespace EntryEditor
                     //TODO: Load state from previously suspended application
                 }
 
-                await mainWindowViewModel.OnLoading();
+                await mainWindowViewModel.OnLoadingAsync();
 
                 // Place the frame in the current Window
                 Window.Current.Content = rootFrame;
@@ -67,6 +68,8 @@ namespace EntryEditor
                     // parameter
                     rootFrame.Navigate(typeof(MainPage), e.Arguments);
                 }
+                ApplicationView.GetForCurrentView().SetPreferredMinSize(new(500, 500));
+
                 // Ensure the current window is active
                 Window.Current.Activate();
             }
@@ -94,7 +97,7 @@ namespace EntryEditor
             var deferral = e.SuspendingOperation.GetDeferral();
             try
             {
-                await mainWindowViewModel.OnClosing();
+                await mainWindowViewModel.OnClosingAsync();
             }
             finally
             {

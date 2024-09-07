@@ -10,7 +10,6 @@ namespace EntryEditor.Models.Converters
         {
             Visibility result = Visibility.Collapsed;
             
-
             if(value is bool visibility)
             {
                 var invert = bool.Parse(parameter.ToString());

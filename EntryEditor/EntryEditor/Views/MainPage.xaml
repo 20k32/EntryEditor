@@ -6,8 +6,9 @@
     xmlns:controls="using:Microsoft.Toolkit.Uwp.UI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d" d:DesignWidth="1076" Height="752"
-    x:Name="mainPage">
+    mc:Ignorable="d" d:DesignWidth="1076" 
+    x:Name="mainPage"
+    DataContext="{StaticResource mainWindowViewModel}">
     <!-- Menu -->
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -23,7 +24,7 @@
                 <TextBlock Text="Enter first name:"
                            VerticalAlignment="Center"
                            Margin="0, 0, 5, 0"/>
-                <TextBox Text="{Binding FirstName, Source={StaticResource mainWindowViewModel}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                <TextBox Text="{Binding FirstName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          MinWidth="100"
                          MaxWidth="150"/>
             </StackPanel>
@@ -33,7 +34,7 @@
                 <TextBlock Text="Enter last name:"
                            VerticalAlignment="Center"
                            Margin="0, 0, 5, 0"/>
-                <TextBox Text="{Binding LastName, Source={StaticResource mainWindowViewModel}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                <TextBox Text="{Binding LastName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          MinWidth="100"
                          MaxWidth="150"/>
             </StackPanel>
@@ -41,7 +42,7 @@
             <!-- Buttons -->
             <StackPanel Orientation="Horizontal">
                 <Button Content="Add"
-                        Command="{Binding AddCommand, Source={StaticResource mainWindowViewModel}}"
+                        Command="{Binding AddCommand}"
                         Margin="0, 0, 5, 0"/>
             </StackPanel>
         </StackPanel>
@@ -62,21 +63,27 @@
                         Margin="0, 0, 0, 5"
                         Grid.Row="0">
                 <Button Content="Save"
-                        Command="{Binding SaveStateCommand, Source={StaticResource mainWindowViewModel}}" 
+                        Command="{Binding SaveStateCommand}" 
                         Margin="0, 0, 5, 0"/>
                 <Button Content="Load"
-                        Command="{Binding LoadStateCommand, Source={StaticResource mainWindowViewModel}}"/>
+                        Command="{Binding LoadStateCommand}"/>
             </StackPanel>
 
 
-            <StackPanel Grid.Row="1">
-                <controls:DataGrid ItemsSource="{Binding Entries, Source={StaticResource mainWindowViewModel}}"
-                                   AutoGenerateColumns="False">
+            <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <controls:DataGrid ItemsSource="{Binding Entries}"
+                                   AutoGenerateColumns="False"
+                                   Grid.Row="0">
                     <controls:DataGrid.Columns>
                         <controls:DataGridTemplateColumn Header="First name">
                             <controls:DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding FirstName, Mode=TwoWay}" 
+                                    <TextBlock Text="{Binding FirstName, Mode=OneWay}" 
                                                VerticalAlignment="Center" 
                                                Margin="8,0,0,0"/>
                                 </DataTemplate>
@@ -86,7 +93,7 @@
                                     <TextBox Text="{Binding FirstName, Mode=TwoWay}" 
                                              VerticalAlignment="Center" 
                                              Margin="8,0,0,0"
-                                             IsEnabled="{Binding AllowEditing, Mode=TwoWay}"/>
+                                             IsEnabled="{Binding AllowEditing, Mode=OneWay}"/>
                                 </DataTemplate>
                             </controls:DataGridTemplateColumn.CellEditingTemplate>
                         </controls:DataGridTemplateColumn>
@@ -103,29 +110,33 @@
                                     <TextBox Text="{Binding LastName, Mode=TwoWay}" 
                                              VerticalAlignment="Center" 
                                              Margin="8,0,0,0"
-                                             IsEnabled="{Binding AllowEditing, Mode=TwoWay}"/>
+                                             IsEnabled="{Binding AllowEditing, Mode=OneWay}"/>
                                 </DataTemplate>
                             </controls:DataGridTemplateColumn.CellEditingTemplate>
                         </controls:DataGridTemplateColumn>
-                        <controls:DataGridTemplateColumn Header="Options">
+                        <controls:DataGridTemplateColumn Header="Options" 
+                                                         CanUserResize="False" 
+                                                         CanUserSort="False">
                             <controls:DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate x:DataType="local:MainPage">
+                                <DataTemplate>
                                     <StackPanel Orientation="Horizontal">
                                         <Button Content="Edit" 
                                                 Command="{Binding EditCommand, Source={StaticResource mainWindowViewModel}}" 
                                                 CommandParameter="{Binding}"
-                                                Visibility="{Binding AllowEditing, Converter={StaticResource VisibilityConverter}, ConverterParameter=False, Mode=TwoWay}"/>
+                                                Visibility="{Binding AllowEditing, Converter={StaticResource VisibilityConverter}, ConverterParameter=False}"
+                                                Margin="0, 0, 5, 0"/>
 
                                         <Button Content="Submit"
                                                 Command="{Binding SaveChangesCommand, Source={StaticResource mainWindowViewModel}}"
                                                 CommandParameter="{Binding}"
-                                                Visibility="{Binding AllowEditing, Converter={StaticResource VisibilityConverter}, ConverterParameter=True, Mode=TwoWay}"
+                                                Visibility="{Binding AllowEditing, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}"
                                                 Margin="0, 0, 5, 0"/>
 
                                         <Button Content="Cancel"
                                                 Command="{Binding CancelChangesCommand, Source={StaticResource mainWindowViewModel}}"
                                                 CommandParameter="{Binding}"
-                                                Visibility="{Binding AllowEditing, Converter={StaticResource VisibilityConverter}, ConverterParameter=True, Mode=TwoWay}"/>
+                                                Visibility="{Binding AllowEditing, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}"
+                                                Margin="0, 0, 5, 0"/>
 
                                         <Button Content="Delete"
                                                 Command="{Binding DeleteEntryCommand, Source={StaticResource mainWindowViewModel}}"
@@ -138,11 +149,13 @@
                 </controls:DataGrid>
 
                 <TextBlock HorizontalAlignment="Center" 
-                       VerticalAlignment="Center"
-                       Text="This app saves data to your %AppData% folder. If you want other folder - use 'Save', 'Load' buttons."
-                       Grid.Row="2"
-                       Foreground="Gray"/>
-            </StackPanel>
+                           VerticalAlignment="Center"
+                           Text="This app saves data to your %AppData% folder. If you want other folder - use 'Save', 'Load' buttons."
+                           Grid.Row="1"
+                           Foreground="Gray"
+                           TextWrapping="WrapWholeWords"
+                           TextAlignment="Center"/>
+            </Grid>
         </Grid>
     </Grid>
 </Page>

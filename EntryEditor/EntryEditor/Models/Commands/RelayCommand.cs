@@ -5,30 +5,30 @@ namespace EntryEditor.Models.Commands
 {
     internal sealed class RelayCommand : IRelayCommand
     {
-        private Action<object> _execute = null;
-        private Predicate<object> _canExecute = null;
+        private Action<object> execute = null;
+        private Predicate<object> canExecute = null;
 
         public RelayCommand(Action<object> Execute, Predicate<object> CanExecute = null)
         {
-            _execute = Execute;
-            _canExecute = CanExecute;
+            execute = Execute;
+            canExecute = CanExecute;
         }
 
         public event EventHandler CanExecuteChanged;
         
         public bool CanExecute(object parameter)
         {
-            return _canExecute == null || _canExecute.Invoke(parameter);
+            return canExecute == null || canExecute.Invoke(parameter);
         }
 
         public void Execute(object parameter)
         {
-            _execute?.Invoke(parameter);
+            execute?.Invoke(parameter);
         }
 
         public void NotifyCanExecuteChanged()
         {
-            if (_canExecute != null)
+            if (canExecute != null)
             {
                 CanExecuteChanged.Invoke(this, EventArgs.Empty);
             }

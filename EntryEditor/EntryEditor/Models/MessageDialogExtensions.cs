@@ -10,11 +10,11 @@ namespace EntryEditor.Models
 {
     internal static class MessageDialogExtensions
     {
-        public const string OkDialogButtonName = "Ok";
-        public const string NoDialogButtonName = "No";
-        public const string YesDialogButtonName = "Yes";
+        public const string OK_DIALOG_BUTTON_NAME = "Ok";
+        public const string NO_DIALOG_BUTTON_NAME = "No";
+        public const string YES_DIALOG_BUTTON_NAME = "Yes";
 
-        private static readonly MessageDialog _dialogWindow = new(string.Empty);
+        private static readonly MessageDialog dialogWindow = new(string.Empty);
 
         public static IAsyncOperation<IUICommand> ShowMessageAsync(string message, params string[] buttonNames)
         {
@@ -23,16 +23,16 @@ namespace EntryEditor.Models
                 throw new ArgumentNullException(nameof(buttonNames));
             }
 
-            _dialogWindow.Commands.Clear();
-            _dialogWindow.Content = message;
+            dialogWindow.Commands.Clear();
+            dialogWindow.Content = message;
             
             foreach(var name in buttonNames)
             {
-                _dialogWindow.Commands.Add(new UICommand(name));
+                dialogWindow.Commands.Add(new UICommand(name));
             }
 
 
-            return _dialogWindow.ShowAsync();
+            return dialogWindow.ShowAsync();
         }
 
     }

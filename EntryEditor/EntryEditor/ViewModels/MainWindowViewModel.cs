@@ -2,14 +2,11 @@ using EntryEditor.Models;
 using System;
 using EntryEditor.Models.Commands;
 using System.Linq;
-using Windows.UI.Xaml;
 using System.IO;
 using Windows.Storage;
 using EntryEditor.Models.Serialization;
-using Windows.ApplicationModel;
 using System.Threading.Tasks;
 using System.Runtime.Serialization;
-using Windows.Storage.Pickers;
 using System.Collections.Generic;
 using EntryEditor.Models.Serialization.DTOs;
 
@@ -20,13 +17,13 @@ namespace EntryEditor.ViewModels
         private readonly ISerializer<IEnumerable<EntryDTO>> xmlSerializer;
         private readonly ISerializer<IEnumerable<EntryDTO>> jsonSerializer;
 
-        private bool _firstLoad;
+        private bool firstLoad;
 
         public NotifyOnCompleteAddingCollection<EntryReactive> Entries { get; }
 
         public MainWindowViewModel()
         {
-            _firstLoad = true;
+            firstLoad = true;
             Entries = new();
             AddCommand = new RelayCommand(Add, CanAdd);
             EditCommand = new RelayCommand(Edit);
@@ -46,34 +43,13 @@ namespace EntryEditor.ViewModels
             _ => jsonSerializer
         };
 
-        private async Task SaveStateAsync(StorageFolder appFolder)
-        {
-            if (appFolder is null)
-            {
-                appFolder = await ApplicationData.Current.LocalCacheFolder.CreateFolderAsync(DefaultPaths.FOLDER);
-            }
-
-            var file = (StorageFile)await appFolder.TryGetItemAsync(DefaultPaths.FILE_NAME);
-
-            if (file is null)
-            {
-                file = await appFolder.CreateFileAsync(DefaultPaths.FILE_NAME);
-            }
-            else
-            {
-                await FileIO.WriteTextAsync(file, string.Empty);
-            }
-
-            EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Entries, Entries.Count);
-        }
-
         #region Add Command
         public IRelayCommand AddCommand { get; }
 
         private void Add(object _)
         {
             var newEntry = new EntryReactive();
-            newEntry.InitCredentials(FirstName, LastName);
+            newEntry.InitCredentialsIfAllowed(FirstName, LastName);
             Entries.Add(newEntry);
         }
 
@@ -101,9 +77,9 @@ namespace EntryEditor.ViewModels
         private async void DeleteEntry(object entry)
         {
             var uiCommand = await MessageDialogExtensions.ShowMessageAsync("Do you wish to delete entry?",
-                    MessageDialogExtensions.YesDialogButtonName, MessageDialogExtensions.NoDialogButtonName);
+                    MessageDialogExtensions.YES_DIALOG_BUTTON_NAME, MessageDialogExtensions.NO_DIALOG_BUTTON_NAME);
 
-            if (uiCommand.Label == MessageDialogExtensions.YesDialogButtonName)
+            if (uiCommand.Label == MessageDialogExtensions.YES_DIALOG_BUTTON_NAME)
             {
                 Entries.Remove((EntryReactive)entry);
             }
@@ -116,18 +92,18 @@ namespace EntryEditor.ViewModels
 
         private async void SaveChanges(object entry)
         {
-            string dialogResultLabel = MessageDialogExtensions.YesDialogButtonName;
+            string dialogResultLabel = MessageDialogExtensions.YES_DIALOG_BUTTON_NAME;
 
             if (!CanSaveChanges(entry))
             {
                var dialogResult = await MessageDialogExtensions.ShowMessageAsync("Do you really want to leave fields empty?", 
-                    MessageDialogExtensions.YesDialogButtonName, 
-                    MessageDialogExtensions.NoDialogButtonName);
+                    MessageDialogExtensions.YES_DIALOG_BUTTON_NAME, 
+                    MessageDialogExtensions.NO_DIALOG_BUTTON_NAME);
 
                 dialogResultLabel = dialogResult.Label;
             }
 
-            if(dialogResultLabel == MessageDialogExtensions.YesDialogButtonName)
+            if(dialogResultLabel == MessageDialogExtensions.YES_DIALOG_BUTTON_NAME)
             {
                 var currentEntry = ((EntryReactive)entry);
                 currentEntry.CommitChanges();
@@ -159,7 +135,7 @@ namespace EntryEditor.ViewModels
         private void CancelChanges(object entry)
         {
             var currentEntry = ((EntryReactive)entry);
-            currentEntry.RollBackChanges();
+            currentEntry.RollbackChanges();
             currentEntry.AllowEditing = false;
         }
 
@@ -175,6 +151,7 @@ namespace EntryEditor.ViewModels
             {
                 if(file is not null)
                 {
+                    await FileIO.WriteTextAsync(file, string.Empty);
                     var serializer = GetSerializerByFileExtension(file.FileType);
                     EntryReactive.SetSerializer(serializer);
                     EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Entries, Entries.Count);
@@ -182,7 +159,7 @@ namespace EntryEditor.ViewModels
             }
             catch(SerializationException ex)
             {
-                await MessageDialogExtensions.ShowMessageAsync(ex.Message, MessageDialogExtensions.OkDialogButtonName);
+                await MessageDialogExtensions.ShowMessageAsync(ex.Message, MessageDialogExtensions.OK_DIALOG_BUTTON_NAME);
             }
         }
 
@@ -211,7 +188,7 @@ namespace EntryEditor.ViewModels
             }
             catch (SerializationException ex)
             {
-                await MessageDialogExtensions.ShowMessageAsync(ex.Message, MessageDialogExtensions.OkDialogButtonName);
+                await MessageDialogExtensions.ShowMessageAsync(ex.Message, MessageDialogExtensions.OK_DIALOG_BUTTON_NAME);
             }
         }
 
@@ -219,16 +196,19 @@ namespace EntryEditor.ViewModels
 
         #region First Name field
 
-        private string _firstName = string.Empty;
+        private string firstName = string.Empty;
 
         public string FirstName
         {
-            get => _firstName;
+            get => firstName;
             set
             {
-                _firstName = value;
-                NotifyOfPropertyChange();
-                AddCommand.NotifyCanExecuteChanged();
+                if (firstName != value)
+                {
+                    firstName = value;
+                    NotifyOfPropertyChange();
+                    AddCommand.NotifyCanExecuteChanged();
+                }
             }
         }
 
@@ -236,16 +216,19 @@ namespace EntryEditor.ViewModels
 
         #region Last Name filed
 
-        private string _lastName = string.Empty;
+        private string lastName = string.Empty;
 
         public string LastName
         {
-            get => _lastName;
+            get => lastName;
             set
             {
-                _lastName = value;
-                NotifyOfPropertyChange();
-                AddCommand.NotifyCanExecuteChanged();
+                if(lastName != value)
+                {
+                    lastName = value;
+                    NotifyOfPropertyChange();
+                    AddCommand.NotifyCanExecuteChanged();
+                }
             }
         }
 
@@ -253,64 +236,66 @@ namespace EntryEditor.ViewModels
 
         #region Selected Entry
 
-        private EntryReactive _selectedEntry = null;
+        private EntryReactive selectedEntry = null;
 
         public EntryReactive SelectedEntry
         {
-            get => _selectedEntry;
+            get => selectedEntry;
             set
             {
-                _selectedEntry = value;
-                NotifyOfPropertyChange();
+                if(selectedEntry != value)
+                {
+                    selectedEntry = value;
+                    NotifyOfPropertyChange();
+                }
             }
         }
 
         #endregion
 
-        public override async Task OnLoading()
+        public override async Task OnLoadingAsync()
         {
-            if (!_firstLoad)
+            if (firstLoad)
             {
-                return;
-            }
-
-            try
-            {
-                var appFolder = (StorageFolder) await ApplicationData.Current.LocalCacheFolder.TryGetItemAsync(DefaultPaths.FOLDER);
-                if (appFolder is null)
-                {
-                    appFolder = await ApplicationData.Current.LocalCacheFolder.CreateFolderAsync(DefaultPaths.FOLDER);
-                }
-
-                var file = await appFolder.TryGetItemAsync(DefaultPaths.FILE_NAME) as StorageFile;
-
-                if (file is null)
-                {
-                    file = await appFolder.CreateFileAsync(DefaultPaths.FILE_NAME);
-                    EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Enumerable.Empty<EntryReactive>());
-                }
-                else
+                try
                 {
                     var serializer = GetSerializerByFileExtension();
                     EntryReactive.SetSerializer(serializer);
-                    EntryReactive.Deserialize(await file.OpenStreamForReadAsync(), Entries.AddRange);
-                }
 
-                _firstLoad = false;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                await MessageDialogExtensions.ShowMessageAsync("Please, give me access to Local cache folder",
-                    MessageDialogExtensions.OkDialogButtonName);
-            }
-            catch (SerializationException)
-            {
-                await MessageDialogExtensions.ShowMessageAsync("Saving file is corrupted, it will be rewritten when you exit program.",
-                    MessageDialogExtensions.OkDialogButtonName);
+                    var appFolder = (StorageFolder)await ApplicationData.Current.LocalCacheFolder.TryGetItemAsync(DefaultPaths.FOLDER);
+                    if (appFolder is null)
+                    {
+                        appFolder = await ApplicationData.Current.LocalCacheFolder.CreateFolderAsync(DefaultPaths.FOLDER);
+                    }
+
+                    var file = (StorageFile)await appFolder.TryGetItemAsync(DefaultPaths.FILE_NAME);
+
+                    if (file is null)
+                    {
+                        file = await appFolder.CreateFileAsync(DefaultPaths.FILE_NAME);
+                        EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Enumerable.Empty<EntryReactive>());
+                    }
+                    else
+                    {
+                        EntryReactive.Deserialize(await file.OpenStreamForReadAsync(), Entries.AddRange);
+                    }
+
+                    firstLoad = false;
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    await MessageDialogExtensions.ShowMessageAsync("Please, give me access to Local cache folder",
+                        MessageDialogExtensions.OK_DIALOG_BUTTON_NAME);
+                }
+                catch (SerializationException)
+                {
+                    await MessageDialogExtensions.ShowMessageAsync("Saving file is corrupted, it will be rewritten when you exit program.",
+                        MessageDialogExtensions.OK_DIALOG_BUTTON_NAME);
+                }
             }
         }
 
-        public override async Task OnClosing()
+        public override async Task OnClosingAsync()
         {
             var appFolder = await ApplicationExtensions.GetLocalCacheFolderAsync();
 

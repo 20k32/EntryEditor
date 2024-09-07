@@ -1,6 +1,5 @@
 using EntryEditor.Models.Serialization;
 using EntryEditor.Models.Serialization.DTOs;
-using Microsoft.Toolkit.Uwp.UI.Controls;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,18 +7,16 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
-using Windows.ApplicationModel.Email.DataProvider;
-using Windows.Storage.Streams;
 
 
 namespace EntryEditor.Models
 {
     internal sealed class EntryReactive : INotifyPropertyChanged, IMappable<EntryDTO>
     {
+        private static readonly SerializationHelper<EntryDTO> serializationHelper = new();
+        
         private string firstNameBacking;
         private string lastNameBacking;
-
-        private static readonly SerializationHelper<EntryDTO> _serializationHelper = new();
 
         public EntryReactive()
         {
@@ -27,41 +24,41 @@ namespace EntryEditor.Models
             allowEditing = true;
         }
 
-        public void InitCredentials(string firstName, string lastName)
+        public void InitCredentialsIfAllowed(string firstName, string lastName)
         {
             if (AllowEditing)
             {
-                firstNameBacking = _fristName = firstName;
-                lastNameBacking = _lastName = lastName;
+                firstNameBacking = this.firstName = firstName;
+                lastNameBacking = this.lastName = lastName;
                 allowEditing = false;
             }
         }
 
         public Guid Id { get; private set; }
 
-        private string _fristName = string.Empty;
+        private string firstName = string.Empty;
         public string FirstName
         {
-            get => _fristName;
+            get => firstName;
             set
             {
-                if (AllowEditing && !_fristName.Equals(value))
+                if (AllowEditing && firstName != value)
                 {
-                    _fristName = value;
+                    firstName = value;
                     OnPropertyChanged();
                 }
             }
         }
 
-        private string _lastName = string.Empty;
+        private string lastName = string.Empty;
         public string LastName 
         { 
-            get => _lastName; 
+            get => lastName; 
             set
             {
-                if(AllowEditing && _lastName != value)
+                if(AllowEditing && lastName != value)
                 {
-                    _lastName = value;
+                    lastName = value;
                     OnPropertyChanged();
                 }
             }
@@ -88,7 +85,7 @@ namespace EntryEditor.Models
             lastNameBacking = LastName;
         }
 
-        public void RollBackChanges()
+        public void RollbackChanges()
         {
             FirstName = firstNameBacking;
             LastName = lastNameBacking;
@@ -122,7 +119,10 @@ namespace EntryEditor.Models
 
         public override int GetHashCode() => Id.GetHashCode();
 
-        public void Map(out EntryDTO value) => value = new(FirstName, LastName);
+        public void Map(out EntryDTO value) => 
+            value = AllowEditing 
+            ? new(firstNameBacking, lastNameBacking)
+            : new (FirstName, LastName);
 
         public static void Serialize(Stream stream, IEnumerable<EntryReactive> entries, int count = 0)
         {
@@ -138,9 +138,9 @@ namespace EntryEditor.Models
                 entriesToSerialize.Add(entry);
             }
 
-            using (_serializationHelper.SetSerializationStream(stream))
+            using (serializationHelper.SetSerializationStream(stream))
             {
-                _serializationHelper.Serialize(entriesToSerialize);
+                serializationHelper.Serialize(entriesToSerialize);
             }
         }
 
@@ -151,9 +151,9 @@ namespace EntryEditor.Models
                 throw new ArgumentNullException(nameof(callback));
             }
 
-            using (_serializationHelper.SetSerializationStream(stream))
+            using (serializationHelper.SetSerializationStream(stream))
             {
-                var entries = _serializationHelper
+                var entries = serializationHelper
                     .Deserialize()
                     .Select(entry =>
                     {
@@ -163,7 +163,7 @@ namespace EntryEditor.Models
                             throw new SerializationException("Could not deserialize entity.");
                         }
 
-                        entryReactive.InitCredentials(entry.FirstName, entry.LastName);
+                        entryReactive.InitCredentialsIfAllowed(entry.FirstName, entry.LastName);
                         return entryReactive;
                     });
 
@@ -172,6 +172,6 @@ namespace EntryEditor.Models
         }
 
         public static void SetSerializer(ISerializer<IEnumerable<EntryDTO>> serializer)
-            => _serializationHelper.SetSerializer(serializer);
+            => serializationHelper.SetSerializer(serializer);
     }
 }

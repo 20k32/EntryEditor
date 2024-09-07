@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Pickers;
@@ -21,7 +19,7 @@ namespace EntryEditor.Models
                 DefaultFileExtension = ".xml",
                 SuggestedFileName = "Entries",
                 SuggestedStartLocation = PickerLocationId.Desktop,
-                CommitButtonText = "Save"
+                CommitButtonText = "Save",
             };
 
             var xmlPair = new KeyValuePair<string, string[]>("xml", new[] { ".xml" });

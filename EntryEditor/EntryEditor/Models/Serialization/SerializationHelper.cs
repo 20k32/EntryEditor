@@ -10,32 +10,32 @@ namespace EntryEditor.Models.Serialization
 {
     internal sealed class SerializationHelper<TEntry> : IDisposable
     {
-        private ISerializer<IEnumerable<TEntry>> _serializer;
-        private Stream _serializationStream;
+        private ISerializer<IEnumerable<TEntry>> serializer;
+        private Stream serializationStream;
 
         public SerializationHelper(ISerializer<IEnumerable<TEntry>> serializer)
-            => _serializer = serializer;
+            => this.serializer = serializer;
 
         public SerializationHelper()
         { }
 
         public void SetSerializer(ISerializer<IEnumerable<TEntry>> serializer) 
-            => _serializer = serializer;
+            => this.serializer = serializer;
 
-        public Stream SetSerializationStream(Stream stream) => _serializationStream = stream;
+        public Stream SetSerializationStream(Stream stream) => serializationStream = stream;
 
-        public Stream GetSerializationStream() => _serializationStream;
+        public Stream GetSerializationStream() => serializationStream;
 
-        public Stream SerializationStream => _serializationStream;
+        public Stream SerializationStream => serializationStream;
 
         public void Serialize(IEnumerable<TEntry> entities) 
-            => _serializer.SerializeToStream(_serializationStream, entities);
+            => serializer.SerializeToStream(serializationStream, entities);
 
-        public IEnumerable<TEntry> Deserialize() => _serializer.DeserializeFromStream(_serializationStream);
+        public IEnumerable<TEntry> Deserialize() => serializer.DeserializeFromStream(serializationStream);
 
         public void Dispose()
         {
-            _serializationStream?.Dispose();
+            serializationStream?.Dispose();
         }
     }
 }
