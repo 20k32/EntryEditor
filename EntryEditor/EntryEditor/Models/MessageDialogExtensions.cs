@@ -10,9 +10,9 @@ namespace EntryEditor.Models
 {
     internal static class MessageDialogExtensions
     {
-        public const string OK_DIALOG_BUTTON_NAME = "Ok";
-        public const string NO_DIALOG_BUTTON_NAME = "No";
-        public const string YES_DIALOG_BUTTON_NAME = "Yes";
+        public const string OkDialogButtonName = "Ok";
+        public const string NoDialogButtonName = "No";
+        public const string YesDialogButtonName = "Yes";
 
         private static readonly MessageDialog dialogWindow = new(string.Empty);
 

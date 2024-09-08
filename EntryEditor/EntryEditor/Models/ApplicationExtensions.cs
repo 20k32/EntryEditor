@@ -11,10 +11,21 @@ namespace EntryEditor.Models
 {
     internal static class ApplicationExtensions
     {
-        [ThreadStatic]
         private static StorageFolder localCacheFolder;
         
-        public static async Task<StorageFolder> GetLocalCacheFolderAsync()
-            => localCacheFolder ??= await ApplicationData.Current.LocalCacheFolder.GetFolderAsync(DefaultPaths.FOLDER);
+        public static async Task<StorageFolder> GetOrCreateLocalCacheFolderAsync()
+        {
+            if (localCacheFolder is null)
+            {
+                localCacheFolder = (StorageFolder)await ApplicationData.Current.LocalCacheFolder.TryGetItemAsync(DefaultPaths.Folder);
+
+                if (localCacheFolder is null)
+                {
+                    localCacheFolder = await ApplicationData.Current.LocalCacheFolder.CreateFolderAsync(DefaultPaths.Folder);
+                }
+            }
+            
+            return localCacheFolder;
+        }
     }
 }

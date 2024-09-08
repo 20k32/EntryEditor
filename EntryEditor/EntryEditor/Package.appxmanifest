@@ -45,6 +45,5 @@
 
   <Capabilities>
     <Capability Name="internetClient" />
-    <uap:Capability Name="documentsLibrary"/>
   </Capabilities>
 </Package>

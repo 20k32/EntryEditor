@@ -77,9 +77,9 @@ namespace EntryEditor.ViewModels
         private async void DeleteEntry(object entry)
         {
             var uiCommand = await MessageDialogExtensions.ShowMessageAsync("Do you wish to delete entry?",
-                    MessageDialogExtensions.YES_DIALOG_BUTTON_NAME, MessageDialogExtensions.NO_DIALOG_BUTTON_NAME);
+                    MessageDialogExtensions.YesDialogButtonName, MessageDialogExtensions.NoDialogButtonName);
 
-            if (uiCommand.Label == MessageDialogExtensions.YES_DIALOG_BUTTON_NAME)
+            if (uiCommand.Label == MessageDialogExtensions.YesDialogButtonName)
             {
                 Entries.Remove((EntryReactive)entry);
             }
@@ -92,18 +92,18 @@ namespace EntryEditor.ViewModels
 
         private async void SaveChanges(object entry)
         {
-            string dialogResultLabel = MessageDialogExtensions.YES_DIALOG_BUTTON_NAME;
+            string dialogResultLabel = MessageDialogExtensions.YesDialogButtonName;
 
             if (!CanSaveChanges(entry))
             {
                var dialogResult = await MessageDialogExtensions.ShowMessageAsync("Do you really want to leave fields empty?", 
-                    MessageDialogExtensions.YES_DIALOG_BUTTON_NAME, 
-                    MessageDialogExtensions.NO_DIALOG_BUTTON_NAME);
+                    MessageDialogExtensions.YesDialogButtonName, 
+                    MessageDialogExtensions.NoDialogButtonName);
 
                 dialogResultLabel = dialogResult.Label;
             }
 
-            if(dialogResultLabel == MessageDialogExtensions.YES_DIALOG_BUTTON_NAME)
+            if(dialogResultLabel == MessageDialogExtensions.YesDialogButtonName)
             {
                 var currentEntry = ((EntryReactive)entry);
                 currentEntry.CommitChanges();
@@ -159,7 +159,7 @@ namespace EntryEditor.ViewModels
             }
             catch(SerializationException ex)
             {
-                await MessageDialogExtensions.ShowMessageAsync(ex.Message, MessageDialogExtensions.OK_DIALOG_BUTTON_NAME);
+                await MessageDialogExtensions.ShowMessageAsync(ex.Message, MessageDialogExtensions.OkDialogButtonName);
             }
         }
 
@@ -188,7 +188,7 @@ namespace EntryEditor.ViewModels
             }
             catch (SerializationException ex)
             {
-                await MessageDialogExtensions.ShowMessageAsync(ex.Message, MessageDialogExtensions.OK_DIALOG_BUTTON_NAME);
+                await MessageDialogExtensions.ShowMessageAsync(ex.Message, MessageDialogExtensions.OkDialogButtonName);
             }
         }
 
@@ -234,25 +234,6 @@ namespace EntryEditor.ViewModels
 
         #endregion
 
-        #region Selected Entry
-
-        private EntryReactive selectedEntry = null;
-
-        public EntryReactive SelectedEntry
-        {
-            get => selectedEntry;
-            set
-            {
-                if(selectedEntry != value)
-                {
-                    selectedEntry = value;
-                    NotifyOfPropertyChange();
-                }
-            }
-        }
-
-        #endregion
-
         public override async Task OnLoadingAsync()
         {
             if (firstLoad)
@@ -262,17 +243,12 @@ namespace EntryEditor.ViewModels
                     var serializer = GetSerializerByFileExtension();
                     EntryReactive.SetSerializer(serializer);
 
-                    var appFolder = (StorageFolder)await ApplicationData.Current.LocalCacheFolder.TryGetItemAsync(DefaultPaths.FOLDER);
-                    if (appFolder is null)
-                    {
-                        appFolder = await ApplicationData.Current.LocalCacheFolder.CreateFolderAsync(DefaultPaths.FOLDER);
-                    }
-
-                    var file = (StorageFile)await appFolder.TryGetItemAsync(DefaultPaths.FILE_NAME);
+                    var appFolder = await ApplicationExtensions.GetOrCreateLocalCacheFolderAsync();
+                    var file = (StorageFile)await appFolder.TryGetItemAsync(DefaultPaths.FileName);
 
                     if (file is null)
                     {
-                        file = await appFolder.CreateFileAsync(DefaultPaths.FILE_NAME);
+                        file = await appFolder.CreateFileAsync(DefaultPaths.FileName);
                         EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Enumerable.Empty<EntryReactive>());
                     }
                     else
@@ -285,30 +261,24 @@ namespace EntryEditor.ViewModels
                 catch (UnauthorizedAccessException)
                 {
                     await MessageDialogExtensions.ShowMessageAsync("Please, give me access to Local cache folder",
-                        MessageDialogExtensions.OK_DIALOG_BUTTON_NAME);
+                        MessageDialogExtensions.OkDialogButtonName);
                 }
                 catch (SerializationException)
                 {
                     await MessageDialogExtensions.ShowMessageAsync("Saving file is corrupted, it will be rewritten when you exit program.",
-                        MessageDialogExtensions.OK_DIALOG_BUTTON_NAME);
+                        MessageDialogExtensions.OkDialogButtonName);
                 }
             }
         }
 
         public override async Task OnClosingAsync()
         {
-            var appFolder = await ApplicationExtensions.GetLocalCacheFolderAsync();
-
-            if (appFolder is null)
-            {
-                appFolder = await ApplicationData.Current.LocalCacheFolder.CreateFolderAsync(DefaultPaths.FOLDER);
-            }
-
-            var file = (StorageFile)await appFolder.TryGetItemAsync(DefaultPaths.FILE_NAME);
+            var appFolder = await ApplicationExtensions.GetOrCreateLocalCacheFolderAsync();
+            var file = (StorageFile)await appFolder.TryGetItemAsync(DefaultPaths.FileName);
 
             if (file is null)
             {
-                file = await appFolder.CreateFileAsync(DefaultPaths.FILE_NAME);
+                file = await appFolder.CreateFileAsync(DefaultPaths.FileName);
             }
             else
             {

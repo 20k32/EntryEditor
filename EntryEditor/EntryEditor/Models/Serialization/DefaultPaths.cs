@@ -9,7 +9,7 @@ namespace EntryEditor.Models.Serialization
 {
     internal static class DefaultPaths
     {
-        public const string FOLDER = "EntryEditor/";
-        public const string FILE_NAME = "test.json";
+        public const string Folder = "EntryEditor/";
+        public const string FileName = "test.json";
     }
 }
