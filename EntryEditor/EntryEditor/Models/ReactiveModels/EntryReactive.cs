@@ -1,6 +1,8 @@
+using EntryEditor.Models.ReactiveModels;
 using EntryEditor.Models.Serialization;
 using EntryEditor.Models.Serialization.DTOs;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -11,30 +13,35 @@ using System.Runtime.Serialization;
 
 namespace EntryEditor.Models
 {
-    internal sealed class EntryReactive : INotifyPropertyChanged, IMappable<EntryDTO>
+    internal sealed class EntryReactive : ReactiveModelBase,
+        INotifyPropertyChanged,
+        IMappable<EntryDTO>,
+        IEditableObject
     {
         private static readonly SerializationHelper<EntryDTO> serializationHelper = new();
-        
+
         private string firstNameBacking;
         private string lastNameBacking;
 
         public EntryReactive()
         {
             Id = Guid.NewGuid();
-            allowEditing = true;
+            canEdit = true;
         }
 
         public void InitCredentialsIfAllowed(string firstName, string lastName)
         {
-            if (AllowEditing)
+            if (CanEdit)
             {
                 firstNameBacking = this.firstName = firstName;
                 lastNameBacking = this.lastName = lastName;
-                allowEditing = false;
+                canEdit = false;
             }
         }
 
         public Guid Id { get; private set; }
+
+        #region First Name field
 
         private string firstName = string.Empty;
         public string FirstName
@@ -42,54 +49,56 @@ namespace EntryEditor.Models
             get => firstName;
             set
             {
-                if (AllowEditing && firstName != value)
+                if (CanEdit)
                 {
                     firstName = value;
                     OnPropertyChanged();
+                    ValidateFirstName();
                 }
             }
         }
 
+        #endregion First Name field
+
+        #region Last Name field
+
         private string lastName = string.Empty;
-        public string LastName 
-        { 
-            get => lastName; 
+        public string LastName
+        {
+            get => lastName;
             set
             {
-                if(AllowEditing && lastName != value)
+                if (CanEdit)
                 {
                     lastName = value;
                     OnPropertyChanged();
+                    ValidateLastName();
                 }
             }
         }
 
-        private bool allowEditing = false;
+        #endregion Last Name Field
 
-        public bool AllowEditing
+        #region Can Edit Fields
+
+        private bool canEdit = false;
+
+        public bool CanEdit
         {
-            get => allowEditing;
+            get => canEdit;
             set
             {
-                if(allowEditing != value)
+                if (canEdit != value)
                 {
-                    allowEditing = value;
+                    canEdit = value;
                     OnPropertyChanged();
                 }
             }
         }
 
-        public void CommitChanges()
-        {
-            firstNameBacking = FirstName;
-            lastNameBacking = LastName;
-        }
+        #endregion
 
-        public void RollbackChanges()
-        {
-            FirstName = firstNameBacking;
-            LastName = lastNameBacking;
-        }
+        #region Property Changed
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -98,15 +107,17 @@ namespace EntryEditor.Models
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
+        #endregion
+
         public override bool Equals(object obj)
         {
             bool result = false;
 
-            if(obj is EntryReactive entry)
+            if (obj is EntryReactive entry)
             {
                 result = Equals(entry);
             }
-            else if(obj is Guid id)
+            else if (obj is Guid id)
             {
                 result = Equals(id);
             }
@@ -119,14 +130,14 @@ namespace EntryEditor.Models
 
         public override int GetHashCode() => Id.GetHashCode();
 
-        public void Map(out EntryDTO value) => 
-            value = AllowEditing 
+        public void Map(out EntryDTO value) =>
+            value = CanEdit
             ? new(firstNameBacking, lastNameBacking)
-            : new (FirstName, LastName);
+            : new(FirstName, LastName);
 
         public static void Serialize(Stream stream, IEnumerable<EntryReactive> entries, int count = 0)
         {
-            if(entries is null)
+            if (entries is null)
             {
                 throw new ArgumentNullException(nameof(entries));
             }
@@ -146,7 +157,7 @@ namespace EntryEditor.Models
 
         public static void Deserialize(Stream stream, Action<IEnumerable<EntryReactive>> callback)
         {
-            if(callback is null)
+            if (callback is null)
             {
                 throw new ArgumentNullException(nameof(callback));
             }
@@ -158,7 +169,7 @@ namespace EntryEditor.Models
                     .Select(entry =>
                     {
                         var entryReactive = new EntryReactive();
-                        if(entry.FirstName is null || entry.LastName is null)
+                        if (entry.FirstName is null || entry.LastName is null)
                         {
                             throw new SerializationException("Could not deserialize entity.");
                         }
@@ -173,5 +184,77 @@ namespace EntryEditor.Models
 
         public static void SetSerializer(ISerializer<IEnumerable<EntryDTO>> serializer)
             => serializationHelper.SetSerializer(serializer);
+
+        public void BeginEdit()
+        {
+            if (IsValid)
+            {
+                CanEdit = true;
+                firstNameBacking = FirstName;
+                lastNameBacking = LastName;
+            }
+        }
+
+        public void CancelEdit()
+        {
+            if (CanEdit)
+            {
+                CanEdit = false;
+                firstName = firstNameBacking;
+                lastName = lastNameBacking;
+                OnPropertyChanged(nameof(FirstName));
+                OnPropertyChanged(nameof(LastName));
+
+                ClearErrors();
+                OnErrorsChanged(this, new(nameof(FirstName)));
+                OnErrorsChanged(this, new(nameof(LastName)));
+            }
+        }
+
+        public void EndEdit()
+        {
+            if (CanEdit && IsValid)
+            {
+                CanEdit = false;
+                firstNameBacking = FirstName;
+                lastNameBacking = LastName;
+            }
+        }
+
+        #region Validation
+
+        public bool IsValid => !HasErrors;
+
+        private void ValidateFirstName()
+        {
+            if (string.IsNullOrEmpty(FirstName))
+            {
+                AddError(nameof(FirstName), "First name is null");
+            }
+            else
+            {
+                DeleteError(nameof(FirstName), "First name is null");
+            }
+
+            OnErrorsChanged(this, new(nameof(FirstName)));
+            OnPropertyChanged(nameof(IsValid));
+        }
+
+        private void ValidateLastName()
+        {
+            if (string.IsNullOrEmpty(LastName))
+            {
+                AddError(nameof(LastName), "Last name is null");
+            }
+            else
+            {
+                DeleteError(nameof(LastName), "Last name is null");
+            }
+
+            OnErrorsChanged(this, new(nameof(LastName)));
+            OnPropertyChanged(nameof(IsValid));
+        }
+
+        #endregion
     }
 }

@@ -62,10 +62,10 @@ namespace EntryEditor.ViewModels
 
         public IRelayCommand EditCommand { get; }
 
-        private void Edit(object id)
+        private void Edit(object entry)
         {
-            var entryToEdit = Entries.First(entry => entry.Equals(id));
-            entryToEdit.AllowEditing = true;
+            var entryToEdit = (EntryReactive)entry;
+            entryToEdit.CanEdit = true;
         }
 
         #endregion
@@ -106,8 +106,7 @@ namespace EntryEditor.ViewModels
             if(dialogResultLabel == MessageDialogExtensions.YesDialogButtonName)
             {
                 var currentEntry = ((EntryReactive)entry);
-                currentEntry.CommitChanges();
-                currentEntry.AllowEditing = false;
+                currentEntry.EndEdit();
             }
         }
 
@@ -135,8 +134,7 @@ namespace EntryEditor.ViewModels
         private void CancelChanges(object entry)
         {
             var currentEntry = ((EntryReactive)entry);
-            currentEntry.RollbackChanges();
-            currentEntry.AllowEditing = false;
+            currentEntry.CancelEdit();
         }
 
         #endregion

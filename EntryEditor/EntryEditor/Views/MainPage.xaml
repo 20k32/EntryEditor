@@ -7,8 +7,10 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d" d:DesignWidth="1076"
+    xmlns:Interactivity="using:Microsoft.Xaml.Interactivity" 
+    xmlns:Interactions="using:Microsoft.Xaml.Interactions.Core"
     DataContext="{StaticResource mainWindowViewModel}">
-    
+
     <!-- Menu -->
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -75,67 +77,78 @@
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                
+
                 <controls:DataGrid ItemsSource="{Binding Entries}"
                                    AutoGenerateColumns="False"
                                    Grid.Row="0">
+                    
+                    <!--<controls:DataGrid.RowDetailsTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="20,10" Padding="5" Spacing="3"
+                                        Visibility="{Binding HasErrors, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}">
+                                <TextBlock Margin="20" Text="You have some erorrs:"/>
+                                <ItemsControl ItemsSource="{Binding Errors}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </controls:DataGrid.RowDetailsTemplate>-->
+
                     <controls:DataGrid.Columns>
+                        
                         <controls:DataGridTemplateColumn Header="First name">
                             <controls:DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding FirstName, Mode=OneWay}" 
-                                               VerticalAlignment="Center" 
-                                               Margin="8,0,0,0"/>
+                                    <TextBlock Text="{Binding FirstName, Mode=OneWay}"
+                                               VerticalAlignment="Center"
+                                               HorizontalTextAlignment="DetectFromContent"/>
                                 </DataTemplate>
                             </controls:DataGridTemplateColumn.CellTemplate>
                             <controls:DataGridTemplateColumn.CellEditingTemplate>
                                 <DataTemplate>
-                                    <TextBox Text="{Binding FirstName, Mode=TwoWay}" 
-                                             VerticalAlignment="Center" 
-                                             Margin="8,0,0,0"
-                                             IsEnabled="{Binding AllowEditing, Mode=OneWay}"/>
+                                    <TextBox Text="{Binding FirstName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                 </DataTemplate>
                             </controls:DataGridTemplateColumn.CellEditingTemplate>
                         </controls:DataGridTemplateColumn>
+
+
                         <controls:DataGridTemplateColumn Header="Last name">
                             <controls:DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding LastName, Mode=OneWay}" 
-                                               VerticalAlignment="Center" 
-                                               Margin="8,0,0,0"/>
+                                    <TextBlock Text="{Binding LastName, Mode=OneWay}"
+                                               VerticalAlignment="Center"/>
                                 </DataTemplate>
                             </controls:DataGridTemplateColumn.CellTemplate>
                             <controls:DataGridTemplateColumn.CellEditingTemplate>
                                 <DataTemplate>
-                                    <TextBox Text="{Binding LastName, Mode=TwoWay}" 
-                                             VerticalAlignment="Center" 
-                                             Margin="8,0,0,0"
-                                             IsEnabled="{Binding AllowEditing, Mode=OneWay}"/>
+                                    <TextBox Text="{Binding LastName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                                 </DataTemplate>
                             </controls:DataGridTemplateColumn.CellEditingTemplate>
                         </controls:DataGridTemplateColumn>
+
                         <controls:DataGridTemplateColumn Header="Options" 
                                                          CanUserResize="False" 
                                                          CanUserSort="False">
+
                             <controls:DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal">
+                                        
                                         <Button Content="Edit" 
                                                 Command="{Binding EditCommand, Source={StaticResource mainWindowViewModel}}" 
                                                 CommandParameter="{Binding}"
-                                                Visibility="{Binding AllowEditing, Converter={StaticResource VisibilityConverter}, ConverterParameter=False}"
+                                                Visibility="{Binding CanEdit, Converter={StaticResource VisibilityConverter}, ConverterParameter=False}"
                                                 Margin="0, 0, 5, 0"/>
 
                                         <Button Content="Submit"
+                                                IsEnabled="{Binding IsValid}"
                                                 Command="{Binding SaveChangesCommand, Source={StaticResource mainWindowViewModel}}"
                                                 CommandParameter="{Binding}"
-                                                Visibility="{Binding AllowEditing, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}"
+                                                Visibility="{Binding CanEdit, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}"
                                                 Margin="0, 0, 5, 0"/>
 
                                         <Button Content="Cancel"
                                                 Command="{Binding CancelChangesCommand, Source={StaticResource mainWindowViewModel}}"
                                                 CommandParameter="{Binding}"
-                                                Visibility="{Binding AllowEditing, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}"
+                                                Visibility="{Binding CanEdit, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}"
                                                 Margin="0, 0, 5, 0"/>
 
                                         <Button Content="Delete"
