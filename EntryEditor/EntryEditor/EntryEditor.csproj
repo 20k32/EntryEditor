@@ -126,7 +126,6 @@
     <Compile Include="Models\Converters\ModifiedDateConverter.cs" />
     <Compile Include="Models\Converters\VisibilityConverter.cs" />
     <Compile Include="Models\DataGridWrapper.cs" />
-    <Compile Include="Models\ErrorCollection.cs" />
     <Compile Include="Models\FilePickerExtensions.cs" />
     <Compile Include="Models\MessageDialogExtensions.cs" />
     <Compile Include="Models\Serialization\DefaultPaths.cs" />

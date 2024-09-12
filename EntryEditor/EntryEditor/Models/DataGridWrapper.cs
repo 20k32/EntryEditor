@@ -14,7 +14,6 @@ namespace EntryEditor.Models
         public DataGridWrapper(DataGrid dataGrid) => this.dataGrid = dataGrid;
 
         public void BeginEdit() => dataGrid.BeginEdit();
-        public void CancelEdit() => dataGrid.CancelEdit();
         public void EndEdit() => dataGrid.CommitEdit();
     }
 }

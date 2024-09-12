@@ -114,7 +114,7 @@ namespace EntryEditor.ViewModels
 
         #endregion
 
-        #region Delete entry command
+        #region Delete Entry Command
 
         public IRelayCommand DeleteEntryCommand { get; }
 
@@ -141,21 +141,6 @@ namespace EntryEditor.ViewModels
             wrapGrid?.EndEdit();
         }
 
-        private bool CanSaveChanges(object entry)
-        {
-            bool result = false;
-
-            if(entry is not null)
-            {
-                var currentEntry = (EntryReactive)entry;
-
-                result = !string.IsNullOrEmpty(currentEntry.FirstName)
-                        && !string.IsNullOrEmpty(currentEntry.LastName);
-            }
-       
-            return result;
-        }
-
         #endregion
 
         #region Cancel Changes Command
@@ -164,7 +149,12 @@ namespace EntryEditor.ViewModels
 
         private void CancelChanges(object entry)
         {
-            wrapGrid?.CancelEdit();
+            var reactive = ((EntryReactive)entry);
+            if (reactive.CanEdit)
+            {
+                reactive.CancelEdit();
+                wrapGrid?.EndEdit();
+            }
         }
 
         #endregion
@@ -182,7 +172,7 @@ namespace EntryEditor.ViewModels
                     await FileIO.WriteTextAsync(file, string.Empty);
                     var serializer = GetSerializerByFileExtension(file.FileType);
                     EntryReactive.SetSerializer(serializer);
-                    EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Entries, Entries.Count);
+                    EntryReactive.SerializeAndDispose(await file.OpenStreamForWriteAsync(), Entries, Entries.Count);
                 }
             }
             catch(SerializationException ex)
@@ -211,7 +201,8 @@ namespace EntryEditor.ViewModels
 
                     var serializer = GetSerializerByFileExtension(file.FileType);
                     EntryReactive.SetSerializer(serializer);
-                    EntryReactive.Deserialize(await file.OpenStreamForReadAsync(), Entries.AddRange);
+                    var stream = await file.OpenStreamForReadAsync();
+                    EntryReactive.DeserializeAndDispose(stream, Entries.AddRange);
                 }
             }
             catch (SerializationException ex)
@@ -279,12 +270,12 @@ namespace EntryEditor.ViewModels
                         file = await appFolder.CreateFileAsync(DefaultPaths.FileName);
 
                         var stream = await file.OpenStreamForWriteAsync();
-                        EntryReactive.Serialize(stream, Enumerable.Empty<EntryReactive>());
+                        EntryReactive.SerializeAndDispose(stream, Enumerable.Empty<EntryReactive>());
                     }
                     else
                     {
                         var stream = await file.OpenStreamForReadAsync();
-                        EntryReactive.Deserialize(stream, Entries.AddRange);
+                        EntryReactive.DeserializeAndDispose(stream, Entries.AddRange);
                     }
 
                     firstLoad = false;
@@ -320,7 +311,7 @@ namespace EntryEditor.ViewModels
             EntryReactive.SetSerializer(serializer);
 
             var stream = await file.OpenStreamForWriteAsync();
-            EntryReactive.Serialize(stream, Entries, Entries.Count);
+            EntryReactive.SerializeAndDispose(stream, Entries, Entries.Count);
         }
     }
 }

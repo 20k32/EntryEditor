@@ -28,8 +28,6 @@ namespace EntryEditor.Models
             canEdit = true;
         }
 
-        public DataGridRowDetailsVisibilityMode DgVisible => DataGridRowDetailsVisibilityMode.Visible;
-
         public void InitCredentialsIfAllowed(string firstName, string lastName)
         {
             if (CanEdit)
@@ -156,7 +154,7 @@ namespace EntryEditor.Models
             ? new(firstNameBacking, lastNameBacking, ModifiedDate)
             : new(FirstName, LastName, ModifiedDate);
 
-        public static void Serialize(Stream stream, IEnumerable<EntryReactive> entries, int count = 0)
+        public static void SerializeAndDispose(Stream stream, IEnumerable<EntryReactive> entries, int count = 0)
         {
             if (entries is null)
             {
@@ -176,7 +174,7 @@ namespace EntryEditor.Models
             }
         }
 
-        public static void Deserialize(Stream stream, Action<IEnumerable<EntryReactive>> callback)
+        public static void DeserializeAndDispose(Stream stream, Action<IEnumerable<EntryReactive>> callback)
         {
             if (callback is null)
             {
@@ -190,7 +188,8 @@ namespace EntryEditor.Models
                     .Select(entry =>
                     {
                         var entryReactive = new EntryReactive();
-                        if (entry.FirstName is null || entry.LastName is null)
+                        if (entry.FirstName is null 
+                           || entry.LastName is null)
                         {
                             throw new SerializationException("Could not deserialize entity.");
                         }
@@ -198,13 +197,18 @@ namespace EntryEditor.Models
                         {
                             entryReactive.InitCredentialsIfAllowed(entry.FirstName, entry.LastName);
                         }
-                        if(entry.ModifiedDate is null)
+
+                        if (string.IsNullOrWhiteSpace(entry.ModifiedDate))
                         {
                             entryReactive.ModifiedDate = DateTime.Now.ToShortDateString();
                         }
-                        else
+                        else if (DateTime.TryParse(entry.ModifiedDate, out var _))
                         {
                             entryReactive.ModifiedDate = entry.ModifiedDate;
+                        }
+                        else
+                        {
+                            throw new SerializationException("Could not deserialize entity.");
                         }
                         
                         return entryReactive;

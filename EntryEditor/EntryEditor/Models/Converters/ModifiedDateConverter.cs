@@ -13,7 +13,7 @@ namespace EntryEditor.Models.Converters
 {
     internal sealed class ModifiedDateConverter : IValueConverter
     {
-        static StringBuilder stringBuilder = new();
+        private static StringBuilder stringBuilder = new();
 
         public object Convert(object value, Type targetType, object parameter, string language)
         {
