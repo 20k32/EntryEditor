@@ -12,10 +12,14 @@ namespace EntryEditor.Models.Serialization.DTOs
         [DataMember(Name = "ln")]
         public readonly string LastName;
 
-        public EntryDTO(string firstName, string lastName)
+        [DataMember(Name = "md")]
+        public readonly string ModifiedDate;
+
+        public EntryDTO(string firstName, string lastName, string modifiedDate)
         {
             FirstName = firstName;
             LastName = lastName;
+            ModifiedDate = modifiedDate;
         }
     }
 }

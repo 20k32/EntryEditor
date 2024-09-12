@@ -10,6 +10,7 @@
         <controls:XamlControlsResources>
             <controls:XamlControlsResources.MergedDictionaries>
                 <ResourceDictionary>
+                    <converters:ModifiedDateConverter x:Key="ModifiedDateConverter"/>
                     <converters:VisibilityConverter x:Key="VisibilityConverter"/>
                     <viewModels:MainWindowViewModel x:Key="mainWindowViewModel"/>
                 </ResourceDictionary>

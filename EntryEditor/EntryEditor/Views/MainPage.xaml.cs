@@ -3,6 +3,7 @@ using EntryEditor.ViewModels;
 using Microsoft.Toolkit.Uwp.UI.Controls;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -21,6 +22,11 @@ namespace EntryEditor.Views
         public MainPage()
         {
             InitializeComponent();
+
+            ((MainWindowViewModel)Application
+                .Current
+                .Resources["mainWindowViewModel"])
+            .SetPartGrid(new(PART_DataGrid));
         }
     }
 }

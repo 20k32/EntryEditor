@@ -123,11 +123,12 @@
     <Compile Include="Models\ApplicationExtensions.cs" />
     <Compile Include="Models\Commands\IRelayCommand.cs" />
     <Compile Include="Models\Commands\RelayCommand.cs" />
+    <Compile Include="Models\Converters\ModifiedDateConverter.cs" />
     <Compile Include="Models\Converters\VisibilityConverter.cs" />
+    <Compile Include="Models\DataGridWrapper.cs" />
     <Compile Include="Models\ErrorCollection.cs" />
     <Compile Include="Models\FilePickerExtensions.cs" />
     <Compile Include="Models\MessageDialogExtensions.cs" />
-    <Compile Include="Models\ReactiveModels\ReactiveModelBase.cs" />
     <Compile Include="Models\Serialization\DefaultPaths.cs" />
     <Compile Include="Models\Serialization\DTOs\EntryDTO.cs" />
     <Compile Include="Models\IMappable.cs" />

@@ -9,11 +9,19 @@ using System.Threading.Tasks;
 using System.Runtime.Serialization;
 using System.Collections.Generic;
 using EntryEditor.Models.Serialization.DTOs;
+using Windows.UI.Xaml.Controls;
+using Microsoft.Toolkit.Uwp.UI.Controls;
+using Windows.UI.Xaml;
+using Microsoft.Toolkit.Uwp.UI.Controls.Primitives;
+using Windows.UI.Xaml.Media;
+using Windows.Devices.Bluetooth.Advertisement;
 
 namespace EntryEditor.ViewModels
 {
     internal sealed class MainWindowViewModel : ViewModelBase
     {
+        private DataGridWrapper wrapGrid;
+        private EntryReactive previousEdited;
         private readonly ISerializer<IEnumerable<EntryDTO>> xmlSerializer;
         private readonly ISerializer<IEnumerable<EntryDTO>> jsonSerializer;
 
@@ -34,6 +42,11 @@ namespace EntryEditor.ViewModels
             LoadStateCommand = new RelayCommand(LoadState);
             xmlSerializer = new XmlSerializer();
             jsonSerializer = new JsonSerializer();
+        }
+
+        public void SetPartGrid(DataGridWrapper value)
+        {
+            this.wrapGrid = value;
         }
 
         private ISerializer<IEnumerable<EntryDTO>> GetSerializerByFileExtension(string extension = null) => extension switch
@@ -64,9 +77,40 @@ namespace EntryEditor.ViewModels
 
         private void Edit(object entry)
         {
-            var entryToEdit = (EntryReactive)entry;
-            entryToEdit.CanEdit = true;
+            EntryReactive current = null;
+            if (entry is EntryReactive reactive)
+            {
+                current = reactive;
+            }
+            if (previousEdited != current)
+            {
+                if (previousEdited is not null)
+                {
+                    previousEdited.EndEdit();
+                }
+
+                previousEdited = current;
+            }
+
+            SelectedEntry = current;
+            wrapGrid?.BeginEdit();
         }
+
+        #endregion
+
+        #region Selected Entry
+
+        private EntryReactive selectedEntry;
+        
+        public EntryReactive SelectedEntry
+        {
+            get => selectedEntry;
+            set
+            {
+                selectedEntry = value;
+                NotifyOfPropertyChange();
+            }
+        } 
 
         #endregion
 
@@ -75,7 +119,7 @@ namespace EntryEditor.ViewModels
         public IRelayCommand DeleteEntryCommand { get; }
 
         private async void DeleteEntry(object entry)
-        {
+        {            
             var uiCommand = await MessageDialogExtensions.ShowMessageAsync("Do you wish to delete entry?",
                     MessageDialogExtensions.YesDialogButtonName, MessageDialogExtensions.NoDialogButtonName);
 
@@ -83,6 +127,8 @@ namespace EntryEditor.ViewModels
             {
                 Entries.Remove((EntryReactive)entry);
             }
+
+            wrapGrid?.EndEdit();
         }
 
         #endregion
@@ -90,24 +136,9 @@ namespace EntryEditor.ViewModels
         #region Save Changes Command
         public IRelayCommand SaveChangesCommand { get; }
 
-        private async void SaveChanges(object entry)
+        private void SaveChanges(object entry)
         {
-            string dialogResultLabel = MessageDialogExtensions.YesDialogButtonName;
-
-            if (!CanSaveChanges(entry))
-            {
-               var dialogResult = await MessageDialogExtensions.ShowMessageAsync("Do you really want to leave fields empty?", 
-                    MessageDialogExtensions.YesDialogButtonName, 
-                    MessageDialogExtensions.NoDialogButtonName);
-
-                dialogResultLabel = dialogResult.Label;
-            }
-
-            if(dialogResultLabel == MessageDialogExtensions.YesDialogButtonName)
-            {
-                var currentEntry = ((EntryReactive)entry);
-                currentEntry.EndEdit();
-            }
+            wrapGrid?.EndEdit();
         }
 
         private bool CanSaveChanges(object entry)
@@ -121,7 +152,7 @@ namespace EntryEditor.ViewModels
                 result = !string.IsNullOrEmpty(currentEntry.FirstName)
                         && !string.IsNullOrEmpty(currentEntry.LastName);
             }
-
+       
             return result;
         }
 
@@ -133,8 +164,7 @@ namespace EntryEditor.ViewModels
 
         private void CancelChanges(object entry)
         {
-            var currentEntry = ((EntryReactive)entry);
-            currentEntry.CancelEdit();
+            wrapGrid?.CancelEdit();
         }
 
         #endregion
@@ -247,11 +277,14 @@ namespace EntryEditor.ViewModels
                     if (file is null)
                     {
                         file = await appFolder.CreateFileAsync(DefaultPaths.FileName);
-                        EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Enumerable.Empty<EntryReactive>());
+
+                        var stream = await file.OpenStreamForWriteAsync();
+                        EntryReactive.Serialize(stream, Enumerable.Empty<EntryReactive>());
                     }
                     else
                     {
-                        EntryReactive.Deserialize(await file.OpenStreamForReadAsync(), Entries.AddRange);
+                        var stream = await file.OpenStreamForReadAsync();
+                        EntryReactive.Deserialize(stream, Entries.AddRange);
                     }
 
                     firstLoad = false;
@@ -285,7 +318,9 @@ namespace EntryEditor.ViewModels
 
             var serializer = GetSerializerByFileExtension();
             EntryReactive.SetSerializer(serializer);
-            EntryReactive.Serialize(await file.OpenStreamForWriteAsync(), Entries, Entries.Count);
+
+            var stream = await file.OpenStreamForWriteAsync();
+            EntryReactive.Serialize(stream, Entries, Entries.Count);
         }
     }
 }

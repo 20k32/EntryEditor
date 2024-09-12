@@ -9,8 +9,18 @@
     mc:Ignorable="d" d:DesignWidth="1076"
     xmlns:Interactivity="using:Microsoft.Xaml.Interactivity" 
     xmlns:Interactions="using:Microsoft.Xaml.Interactions.Core"
-    DataContext="{StaticResource mainWindowViewModel}">
+    DataContext="{StaticResource mainWindowViewModel}"
+    x:Name="mainPage">
 
+
+    <Page.Resources>
+        <DataTemplate x:Key="CorrectTemplate"/>
+        <DataTemplate x:Key="IncorrectTemplate">
+            <StackPanel>
+                <TextBlock Text="Hell to world"/>
+            </StackPanel>
+        </DataTemplate>
+    </Page.Resources>
     <!-- Menu -->
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -71,7 +81,6 @@
                         Command="{Binding LoadStateCommand}"/>
             </StackPanel>
 
-
             <Grid Grid.Row="1">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
@@ -79,27 +88,53 @@
                 </Grid.RowDefinitions>
 
                 <controls:DataGrid ItemsSource="{Binding Entries}"
+                                   SelectedItem="{Binding SelectedEntry, Mode=TwoWay}"
                                    AutoGenerateColumns="False"
-                                   Grid.Row="0">
-                    
-                    <!--<controls:DataGrid.RowDetailsTemplate>
+                                   Grid.Row="0"
+                                   SelectionMode="Single"
+                                   x:Name="PART_DataGrid">
+                    <Interactivity:Interaction.Behaviors>
+                        <Interactions:EventTriggerBehavior EventName="SelectionChanged">
+                            <Interactions:ChangePropertyAction PropertyName="RowDetailsVisibilityMode"
+                                                               Value="Collapsed"/>
+                        </Interactions:EventTriggerBehavior>
+
+                        <Interactions:EventTriggerBehavior EventName="BeginningEdit">
+                            <Interactions:ChangePropertyAction PropertyName="RowDetailsVisibilityMode"
+                                                               Value="VisibleWhenSelected"/>
+                        </Interactions:EventTriggerBehavior>
+
+                        <Interactions:EventTriggerBehavior EventName="RowEditEnded">
+                            <Interactions:ChangePropertyAction PropertyName="RowDetailsVisibilityMode"
+                                                               Value="Collapsed"/>
+                        </Interactions:EventTriggerBehavior>
+                    </Interactivity:Interaction.Behaviors>
+                    <controls:DataGrid.RowDetailsTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="20,10" Padding="5" Spacing="3"
-                                        Visibility="{Binding HasErrors, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}">
-                                <TextBlock Margin="20" Text="You have some erorrs:"/>
-                                <ItemsControl ItemsSource="{Binding Errors}"/>
+                            <StackPanel Height="Auto">
+                                <TextBlock FontSize="10">
+                                    <Interactivity:Interaction.Behaviors>
+                                        
+                                        <Interactions:DataTriggerBehavior Binding="{Binding IsValid}" ComparisonCondition="Equal" Value="True">
+                                            <Interactions:ChangePropertyAction PropertyName="Text"  Value="{Binding ModifiedDate, Converter={StaticResource ModifiedDateConverter}, ConverterParameter=True}"/>
+                                        </Interactions:DataTriggerBehavior>
+                                        
+                                         <Interactions:DataTriggerBehavior Binding="{Binding IsValid}" ComparisonCondition="Equal" Value="False">
+                                            <Interactions:ChangePropertyAction PropertyName="Text" Value="{Binding ModifiedDate, Converter={StaticResource ModifiedDateConverter}, ConverterParameter=False}"/>
+                                         </Interactions:DataTriggerBehavior>
+                                        
+                                     </Interactivity:Interaction.Behaviors>
+                                </TextBlock>
                             </StackPanel>
                         </DataTemplate>
-                    </controls:DataGrid.RowDetailsTemplate>-->
-
+                    </controls:DataGrid.RowDetailsTemplate>
                     <controls:DataGrid.Columns>
-                        
+
                         <controls:DataGridTemplateColumn Header="First name">
                             <controls:DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding FirstName, Mode=OneWay}"
-                                               VerticalAlignment="Center"
-                                               HorizontalTextAlignment="DetectFromContent"/>
+                                               VerticalAlignment="Center"/>
                                 </DataTemplate>
                             </controls:DataGridTemplateColumn.CellTemplate>
                             <controls:DataGridTemplateColumn.CellEditingTemplate>
@@ -108,7 +143,6 @@
                                 </DataTemplate>
                             </controls:DataGridTemplateColumn.CellEditingTemplate>
                         </controls:DataGridTemplateColumn>
-
 
                         <controls:DataGridTemplateColumn Header="Last name">
                             <controls:DataGridTemplateColumn.CellTemplate>
@@ -124,32 +158,30 @@
                             </controls:DataGridTemplateColumn.CellEditingTemplate>
                         </controls:DataGridTemplateColumn>
 
-                        <controls:DataGridTemplateColumn Header="Options" 
-                                                         CanUserResize="False" 
-                                                         CanUserSort="False">
+                        <controls:DataGridTemplateColumn Header="Edit" 
+                                                         CanUserSort="False"
+                                                         Width="Auto">
 
                             <controls:DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal">
-                                        
                                         <Button Content="Edit" 
-                                                Command="{Binding EditCommand, Source={StaticResource mainWindowViewModel}}" 
-                                                CommandParameter="{Binding}"
                                                 Visibility="{Binding CanEdit, Converter={StaticResource VisibilityConverter}, ConverterParameter=False}"
-                                                Margin="0, 0, 5, 0"/>
+                                                Margin="0, 0, 5, 0"
+                                                Command="{Binding EditCommand, Source={StaticResource mainWindowViewModel}}"
+                                                CommandParameter="{Binding}"/>
 
                                         <Button Content="Submit"
-                                                IsEnabled="{Binding IsValid}"
                                                 Command="{Binding SaveChangesCommand, Source={StaticResource mainWindowViewModel}}"
                                                 CommandParameter="{Binding}"
-                                                Visibility="{Binding CanEdit, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}"
-                                                Margin="0, 0, 5, 0"/>
+                                                Margin="0, 0, 5, 0"
+                                                Visibility="{Binding CanEdit, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}"/>
 
                                         <Button Content="Cancel"
                                                 Command="{Binding CancelChangesCommand, Source={StaticResource mainWindowViewModel}}"
                                                 CommandParameter="{Binding}"
-                                                Visibility="{Binding CanEdit, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}"
-                                                Margin="0, 0, 5, 0"/>
+                                                Margin="0, 0, 5, 0"
+                                                Visibility="{Binding CanEdit, Converter={StaticResource VisibilityConverter}, ConverterParameter=True}"/>
 
                                         <Button Content="Delete"
                                                 Command="{Binding DeleteEntryCommand, Source={StaticResource mainWindowViewModel}}"

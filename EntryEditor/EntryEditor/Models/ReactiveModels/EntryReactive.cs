@@ -1,6 +1,6 @@
-using EntryEditor.Models.ReactiveModels;
 using EntryEditor.Models.Serialization;
 using EntryEditor.Models.Serialization.DTOs;
+using Microsoft.Toolkit.Uwp.UI.Controls;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,13 +13,12 @@ using System.Runtime.Serialization;
 
 namespace EntryEditor.Models
 {
-    internal sealed class EntryReactive : ReactiveModelBase,
+    internal sealed class EntryReactive :
         INotifyPropertyChanged,
         IMappable<EntryDTO>,
         IEditableObject
     {
         private static readonly SerializationHelper<EntryDTO> serializationHelper = new();
-
         private string firstNameBacking;
         private string lastNameBacking;
 
@@ -29,12 +28,15 @@ namespace EntryEditor.Models
             canEdit = true;
         }
 
+        public DataGridRowDetailsVisibilityMode DgVisible => DataGridRowDetailsVisibilityMode.Visible;
+
         public void InitCredentialsIfAllowed(string firstName, string lastName)
         {
             if (CanEdit)
             {
                 firstNameBacking = this.firstName = firstName;
                 lastNameBacking = this.lastName = lastName;
+                ModifiedDate = DateTime.Now.ToShortDateString();
                 canEdit = false;
             }
         }
@@ -49,7 +51,7 @@ namespace EntryEditor.Models
             get => firstName;
             set
             {
-                if (CanEdit)
+                if (CanEdit && firstName != value)
                 {
                     firstName = value;
                     OnPropertyChanged();
@@ -68,7 +70,7 @@ namespace EntryEditor.Models
             get => lastName;
             set
             {
-                if (CanEdit)
+                if (CanEdit && lastName != value)
                 {
                     lastName = value;
                     OnPropertyChanged();
@@ -78,6 +80,25 @@ namespace EntryEditor.Models
         }
 
         #endregion Last Name Field
+
+        #region Modified Date
+
+        private string _modifiedDate;
+        
+        public string ModifiedDate
+        {
+            get => _modifiedDate;
+            set
+            {
+                if(ModifiedDate != value)
+                {
+                    _modifiedDate = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        #endregion
 
         #region Can Edit Fields
 
@@ -132,8 +153,8 @@ namespace EntryEditor.Models
 
         public void Map(out EntryDTO value) =>
             value = CanEdit
-            ? new(firstNameBacking, lastNameBacking)
-            : new(FirstName, LastName);
+            ? new(firstNameBacking, lastNameBacking, ModifiedDate)
+            : new(FirstName, LastName, ModifiedDate);
 
         public static void Serialize(Stream stream, IEnumerable<EntryReactive> entries, int count = 0)
         {
@@ -173,8 +194,19 @@ namespace EntryEditor.Models
                         {
                             throw new SerializationException("Could not deserialize entity.");
                         }
-
-                        entryReactive.InitCredentialsIfAllowed(entry.FirstName, entry.LastName);
+                        else
+                        {
+                            entryReactive.InitCredentialsIfAllowed(entry.FirstName, entry.LastName);
+                        }
+                        if(entry.ModifiedDate is null)
+                        {
+                            entryReactive.ModifiedDate = DateTime.Now.ToShortDateString();
+                        }
+                        else
+                        {
+                            entryReactive.ModifiedDate = entry.ModifiedDate;
+                        }
+                        
                         return entryReactive;
                     });
 
@@ -187,12 +219,11 @@ namespace EntryEditor.Models
 
         public void BeginEdit()
         {
-            if (IsValid)
-            {
-                CanEdit = true;
-                firstNameBacking = FirstName;
-                lastNameBacking = LastName;
-            }
+            CanEdit = true;
+            firstNameBacking = FirstName;
+            lastNameBacking = LastName;
+            ValidateFirstName();
+            ValidateLastName();
         }
 
         public void CancelEdit()
@@ -204,39 +235,38 @@ namespace EntryEditor.Models
                 lastName = lastNameBacking;
                 OnPropertyChanged(nameof(FirstName));
                 OnPropertyChanged(nameof(LastName));
-
-                ClearErrors();
-                OnErrorsChanged(this, new(nameof(FirstName)));
-                OnErrorsChanged(this, new(nameof(LastName)));
             }
         }
 
         public void EndEdit()
         {
-            if (CanEdit && IsValid)
+            if (CanEdit)
             {
                 CanEdit = false;
                 firstNameBacking = FirstName;
                 lastNameBacking = LastName;
+                ModifiedDate = DateTime.Now.ToShortDateString();
             }
         }
 
         #region Validation
 
-        public bool IsValid => !HasErrors;
+
+        private bool isFirstNameValid;
+        private bool isLastNameValid;
+        public bool IsValid => isFirstNameValid && isLastNameValid;
 
         private void ValidateFirstName()
         {
             if (string.IsNullOrEmpty(FirstName))
             {
-                AddError(nameof(FirstName), "First name is null");
+                isFirstNameValid = false;
             }
             else
             {
-                DeleteError(nameof(FirstName), "First name is null");
+                isFirstNameValid = true;
             }
 
-            OnErrorsChanged(this, new(nameof(FirstName)));
             OnPropertyChanged(nameof(IsValid));
         }
 
@@ -244,14 +274,13 @@ namespace EntryEditor.Models
         {
             if (string.IsNullOrEmpty(LastName))
             {
-                AddError(nameof(LastName), "Last name is null");
+                isLastNameValid = false;
             }
             else
             {
-                DeleteError(nameof(LastName), "Last name is null");
+                isLastNameValid = true;
             }
 
-            OnErrorsChanged(this, new(nameof(LastName)));
             OnPropertyChanged(nameof(IsValid));
         }
 
